@@ -4,125 +4,236 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Normal Map Generator - Free3DStore</title>
-<meta name="description" content="Generate normal maps from height maps or photos. Adjust strength, blur, invert. Real-time 3D preview.">
+<meta name="description" content="Generate normal maps from any image. Adjust strength, blur, invert. Real-time 3D preview on a sphere. Download normal map PNG.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
-a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
-.back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
-.container{max-width:900px;margin:0 auto;padding:0 24px 24px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-.subtitle{color:#6b7280;margin-bottom:24px;font-size:15px;line-height:1.6}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
-.panel h2{font-size:16px;font-weight:700;margin-bottom:16px}
-.viewport{width:100%;height:400px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-container{width:100%;height:100%}
-.drop-zone{display:flex;flex-direction:column;align-items:center;gap:12px;color:#6b7280;cursor:pointer}
-.drop-zone h3{font-size:18px;font-weight:700;color:#1a1a1a}
-.drop-zone p{font-size:14px}
-.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
+body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh;display:flex;flex-direction:column}
+a{color:#06b6d4;text-decoration:none}
+.topbar{display:flex;align-items:center;padding:10px 20px;gap:12px;border-bottom:1px solid #e5e7eb;background:#fff}
+.topbar a{font-size:13px;color:#6b7280}
+.topbar h1{font-size:17px;font-weight:800}
+.topbar .spacer{flex:1}
+.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:#374151}
 .btn:hover{border-color:#06b6d4;color:#06b6d4}
 .btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
-.btn-primary:hover{background:#0891b2}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 input[type="file"]{display:none}
+.workspace{display:flex;flex:1;overflow:hidden}
+.sidebar{width:280px;background:#fff;border-right:1px solid #e5e7eb;overflow-y:auto;padding:16px;flex-shrink:0}
+.viewport{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.previews{display:grid;grid-template-columns:1fr 1fr;flex:1;gap:0}
+.preview-pane{position:relative;overflow:hidden;border:1px solid #e5e7eb}
+.preview-pane canvas,.preview-pane img{width:100%;height:100%;object-fit:contain;display:block}
+.preview-label{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.preview-3d{position:relative;border-top:1px solid #e5e7eb;height:300px;flex-shrink:0}
+.preview-3d canvas{width:100%;height:100%;display:block}
+.preview-3d .preview-label{position:absolute;top:8px;left:8px}
+.section{margin-bottom:16px}
+.section h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;margin-bottom:8px}
+.range-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.range-row label{font-size:12px;font-weight:600;width:70px;flex-shrink:0;color:#4b5563}
+.range-row input[type="range"]{flex:1;accent-color:#06b6d4}
+.range-row .val{font-size:12px;font-weight:600;width:36px;text-align:right;color:#06b6d4}
+.drop-area{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#6b7280;cursor:pointer;border:2px dashed #d1d5db;border-radius:12px;margin:20px}
+.drop-area b{color:#1a1a1a;font-size:18px}
+.drop-area.hidden{display:none}
 </style>
 </head>
 <body>
-<a class="back" href="/">← Free3DStore</a>
-<div class="container">
-<h1>🗺️ Normal Map Generator</h1>
-<p class="subtitle">Generate normal maps from height maps or photos. Adjust strength, blur, invert. Real-time 3D preview.</p>
-
-<div class="viewport" id="viewport">
-  <div class="drop-zone" id="drop-zone">
-    <h3>Drop a 3D model here</h3>
-    <p>Supports GLB, OBJ, STL, FBX</p>
-    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
-    <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
+<div class="topbar">
+  <a href="/">← Free3DStore</a>
+  <h1>Normal Map Generator</h1>
+  <span class="spacer"></span>
+  <button class="btn" id="browse-btn">Open Image</button>
+  <button class="btn btn-primary" id="download-btn" disabled>Download Normal Map</button>
+  <input type="file" id="file-input" accept="image/*">
+</div>
+<div class="workspace">
+  <div class="sidebar">
+    <div class="section">
+      <h3>Settings</h3>
+      <div class="range-row"><label>Strength</label><input type="range" id="r-strength" min="0.1" max="5" step="0.1" value="1.5"><span class="val" id="v-strength">1.5</span></div>
+      <div class="range-row"><label>Blur</label><input type="range" id="r-blur" min="0" max="5" step="1" value="0"><span class="val" id="v-blur">0</span></div>
+      <div class="range-row"><label>Invert R</label><input type="checkbox" id="c-invertR" style="accent-color:#06b6d4"></div>
+      <div class="range-row"><label>Invert G</label><input type="checkbox" id="c-invertG" style="accent-color:#06b6d4"></div>
+    </div>
+    <div class="section">
+      <h3>3D Preview</h3>
+      <div class="range-row"><label>Normal Scale</label><input type="range" id="r-scale" min="0" max="3" step="0.1" value="1"><span class="val" id="v-scale">1.0</span></div>
+      <div class="range-row"><label>Metalness</label><input type="range" id="r-metal" min="0" max="1" step="0.01" value="0.1"><span class="val" id="v-metal">0.10</span></div>
+      <div class="range-row"><label>Roughness</label><input type="range" id="r-rough" min="0" max="1" step="0.01" value="0.5"><span class="val" id="v-rough">0.50</span></div>
+    </div>
+  </div>
+  <div class="viewport" id="viewport">
+    <div class="drop-area" id="drop-area">
+      <b>Drop an image to generate normal map</b>
+      <span>PNG, JPG, WebP — any texture or photo</span>
+      <button class="btn btn-primary" id="drop-browse">Choose Image</button>
+    </div>
+    <div class="previews" id="previews" style="display:none">
+      <div class="preview-pane"><canvas id="src-canvas"></canvas><span class="preview-label">Source</span></div>
+      <div class="preview-pane"><canvas id="nrm-canvas"></canvas><span class="preview-label">Normal Map</span></div>
+    </div>
+    <div class="preview-3d" id="preview-3d" style="display:none">
+      <canvas id="three-canvas"></canvas>
+      <span class="preview-label" style="background:rgba(0,0,0,.6);color:#fff">3D Preview</span>
+    </div>
   </div>
 </div>
 
-<div class="panel">
-  <h2>How it works</h2>
-  <p style="color:#6b7280;font-size:14px;line-height:1.7">
-    Drop or browse a 3D model file to get started. Generate normal maps from height maps or photos. Adjust strength, blur, invert. Real-time 3D preview.
-    Everything runs in your browser using Three.js — your files never leave your device.
-  </p>
-</div>
-</div>
-
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
-const viewport = document.getElementById('viewport');
-const dropZone = document.getElementById('drop-zone');
-let scene, camera, renderer, controls;
+const srcCanvas = document.getElementById('src-canvas');
+const nrmCanvas = document.getElementById('nrm-canvas');
+const srcCtx = srcCanvas.getContext('2d');
+const nrmCtx = nrmCanvas.getContext('2d');
+let srcImageData = null;
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
-  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
-  camera.position.set(2, 2, 2);
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5, 5, 5);
-  scene.add(dir);
-  scene.add(new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0));
-  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-  animate();
-  window.addEventListener('resize', () => {
-    camera.aspect = viewport.clientWidth / viewport.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+// Three.js preview
+const tc = document.getElementById('three-canvas'), tp = document.getElementById('preview-3d');
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x222222);
+const camera = new THREE.PerspectiveCamera(45, 2, 0.01, 100);
+camera.position.set(1.5, 1, 1.5);
+const renderer = new THREE.WebGLRenderer({ canvas: tc, antialias: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+const orbit = new OrbitControls(camera, tc); orbit.enableDamping = true; orbit.autoRotate = true; orbit.autoRotateSpeed = 1;
+scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+const dl = new THREE.DirectionalLight(0xffffff, 1.5); dl.position.set(3, 4, 3); scene.add(dl);
+
+const normalTex = new THREE.CanvasTexture(nrmCanvas);
+const colorTex = new THREE.CanvasTexture(srcCanvas);
+const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.1, roughness: 0.5, normalMap: normalTex, normalScale: new THREE.Vector2(1, 1), map: colorTex });
+const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.6, 64, 48), sphereMat);
+sphere.position.y = 0.6; scene.add(sphere);
+scene.add(new THREE.GridHelper(4, 4, 0x444, 0x333));
+
+function resizeThree() {
+  const w = tp.clientWidth, h = tp.clientHeight;
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  renderer.setSize(w, h); renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+}
+(function anim() { requestAnimationFrame(anim); orbit.update(); renderer.render(scene, camera); })();
+
+function loadImage(file) {
+  const img = new Image();
+  img.onload = () => {
+    const w = Math.min(img.width, 2048), h = Math.min(img.height, 2048);
+    srcCanvas.width = nrmCanvas.width = w;
+    srcCanvas.height = nrmCanvas.height = h;
+    srcCtx.drawImage(img, 0, 0, w, h);
+    srcImageData = srcCtx.getImageData(0, 0, w, h);
+    generateNormalMap();
+    document.getElementById('drop-area').style.display = 'none';
+    document.getElementById('previews').style.display = 'grid';
+    document.getElementById('preview-3d').style.display = '';
+    document.getElementById('download-btn').disabled = false;
+    resizeThree();
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+function generateNormalMap() {
+  if (!srcImageData) return;
+  const { width: w, height: h, data: src } = srcImageData;
+  const strength = parseFloat(document.getElementById('r-strength').value);
+  const blur = parseInt(document.getElementById('r-blur').value);
+  const invertR = document.getElementById('c-invertR').checked;
+  const invertG = document.getElementById('c-invertG').checked;
+
+  // Convert to grayscale heights
+  const heights = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const idx = i * 4;
+    heights[i] = (src[idx] * 0.299 + src[idx+1] * 0.587 + src[idx+2] * 0.114) / 255;
+  }
+
+  // Optional blur
+  let h2 = heights;
+  if (blur > 0) {
+    h2 = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let sum = 0, count = 0;
+      for (let dy = -blur; dy <= blur; dy++) for (let dx = -blur; dx <= blur; dx++) {
+        const nx = Math.max(0, Math.min(w-1, x+dx)), ny = Math.max(0, Math.min(h-1, y+dy));
+        sum += heights[ny * w + nx]; count++;
+      }
+      h2[y * w + x] = sum / count;
+    }
+  }
+
+  // Sobel normal map generation
+  const out = nrmCtx.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const tl = h2[Math.max(0,y-1)*w+Math.max(0,x-1)];
+    const t  = h2[Math.max(0,y-1)*w+x];
+    const tr = h2[Math.max(0,y-1)*w+Math.min(w-1,x+1)];
+    const l  = h2[y*w+Math.max(0,x-1)];
+    const r  = h2[y*w+Math.min(w-1,x+1)];
+    const bl = h2[Math.min(h-1,y+1)*w+Math.max(0,x-1)];
+    const b  = h2[Math.min(h-1,y+1)*w+x];
+    const br = h2[Math.min(h-1,y+1)*w+Math.min(w-1,x+1)];
+
+    let dx = (tr + 2*r + br) - (tl + 2*l + bl);
+    let dy = (bl + 2*b + br) - (tl + 2*t + tr);
+    dx *= strength; dy *= strength;
+    if (invertR) dx = -dx;
+    if (invertG) dy = -dy;
+
+    const len = Math.sqrt(dx*dx + dy*dy + 1);
+    const idx = (y * w + x) * 4;
+    out.data[idx]   = Math.round(((dx / len) * 0.5 + 0.5) * 255);
+    out.data[idx+1] = Math.round(((dy / len) * 0.5 + 0.5) * 255);
+    out.data[idx+2] = Math.round(((1  / len) * 0.5 + 0.5) * 255);
+    out.data[idx+3] = 255;
+  }
+  nrmCtx.putImageData(out, 0, 0);
+  normalTex.needsUpdate = true;
+  colorTex.needsUpdate = true;
+}
+
+// Bindings
+['r-strength','r-blur'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById('v-'+id.split('-')[1]).textContent = this.value;
+    generateNormalMap();
   });
-}
+});
+['c-invertR','c-invertG'].forEach(id => document.getElementById(id).addEventListener('change', generateNormalMap));
 
-async function loadFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-  try {
-    let obj;
-    if (ext === 'glb' || ext === 'gltf') { const g = await new GLTFLoader().loadAsync(url); obj = g.scene; }
-    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
-    else if (ext === 'stl') { const geo = await new STLLoader().loadAsync(url); obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x808080})); }
-    else { alert('Unsupported: ' + ext); return; }
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const s = Math.max(size.x, size.y, size.z);
-    const scale = s > 0 ? 2 / s : 1;
-    obj.position.sub(center);
-    obj.scale.multiplyScalar(scale);
-    scene.add(obj);
-    dropZone.style.display = 'none';
-    viewport.appendChild(renderer.domElement);
-  } finally { URL.revokeObjectURL(url); }
-}
+document.getElementById('r-scale').addEventListener('input', function() {
+  sphereMat.normalScale.set(+this.value, +this.value);
+  document.getElementById('v-scale').textContent = (+this.value).toFixed(1);
+});
+document.getElementById('r-metal').addEventListener('input', function() {
+  sphereMat.metalness = +this.value;
+  document.getElementById('v-metal').textContent = (+this.value).toFixed(2);
+});
+document.getElementById('r-rough').addEventListener('input', function() {
+  sphereMat.roughness = +this.value;
+  document.getElementById('v-rough').textContent = (+this.value).toFixed(2);
+});
 
-document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
-viewport.addEventListener('dragover', e => e.preventDefault());
-viewport.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-init();
+// Download
+document.getElementById('download-btn').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'normal_map.png';
+  a.href = nrmCanvas.toDataURL('image/png');
+  a.click();
+});
+
+// File input
+document.getElementById('browse-btn').addEventListener('click', () => document.getElementById('file-input').click());
+document.getElementById('drop-browse').addEventListener('click', () => document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+const da = document.getElementById('drop-area');
+da.addEventListener('dragover', e => e.preventDefault());
+da.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]); });
+window.addEventListener('resize', resizeThree);
 </script>
 <script src="/related.js" defer></script>
 </body>
