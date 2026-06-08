@@ -4,185 +4,330 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Editor - Free3DStore</title>
-<meta name="description" content="Browser-based 3D editor. Add primitives, transform with gizmos, edit materials, save to disk or browser. Like a simple 3DS Max in your browser.">
+<meta name="description" content="Professional browser-based 3D editor. Scene hierarchy, transform gizmos, parametric primitives, material editor, multiple viewports, save to disk. 3DS Max in your browser.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#1e1e1e;--panel:#252526;--panel2:#2d2d2d;--border:#3e3e3e;--text:#ccc;--dim:#888;--accent:#06b6d4;--accent2:#0891b2;--select:#094771;--danger:#ef4444;--white:#fff}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;display:flex;flex-direction:column;font-size:13px;user-select:none}
-button{font-family:inherit;font-size:12px;cursor:pointer;border:none;background:none;color:var(--text);padding:4px 8px;border-radius:3px}
-button:hover{background:rgba(255,255,255,.08)}
-input[type="number"],input[type="text"],input[type="color"]{font-family:inherit;font-size:12px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;outline:none}
-input[type="number"]{width:60px;text-align:right}
-input[type="color"]{width:28px;height:22px;padding:1px;cursor:pointer}
-input[type="range"]{width:100%;accent-color:var(--accent)}
-input:focus{border-color:var(--accent)}
-select{font-size:12px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;outline:none}
+:root{
+  --bg:#3a3a3a;--bg2:#4a4a4a;--panel:#505050;--panel2:#5a5a5a;
+  --dark:#2a2a2a;--darker:#222;--border:#666;--border2:#555;
+  --text:#e0e0e0;--dim:#999;--accent:#4b9cd6;--accent2:#5ab0ea;
+  --sel:#5294c4;--sel-bg:rgba(82,148,196,.2);
+  --red:#d64937;--green:#6aab3d;--blue:#4b9cd6;--yellow:#dbb64d;
+  --white:#fff;--input-bg:#3a3a3a
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);font-size:12px;user-select:none;display:flex;flex-direction:column}
+button{font:inherit;cursor:pointer;border:none;background:none;color:var(--text);padding:0;border-radius:2px}
+input,select{font:inherit;color:var(--text);background:var(--input-bg);border:1px solid var(--border2);padding:2px 4px;border-radius:2px;outline:none}
+input:focus,select:focus{border-color:var(--accent)}
+input[type="number"]{width:54px;text-align:right}
+input[type="color"]{width:24px;height:18px;padding:0;cursor:pointer;border:1px solid var(--border2)}
+input[type="range"]{accent-color:var(--accent);height:14px}
+input[type="checkbox"]{accent-color:var(--accent)}
 
-/* Menubar */
-.menubar{display:flex;align-items:center;background:var(--panel);border-bottom:1px solid var(--border);padding:0 8px;height:32px;gap:2px;flex-shrink:0}
-.menubar .brand{font-weight:700;color:var(--accent);margin-right:12px;font-size:13px}
-.menu-group{display:flex;gap:1px}
-.menu-group button{font-size:12px;padding:4px 10px}
-.menu-group button.active{background:var(--accent);color:var(--white)}
-.spacer{flex:1}
-.status{font-size:11px;color:var(--dim)}
+/* ── Main toolbar ── */
+.main-toolbar{display:flex;align-items:center;height:36px;background:linear-gradient(to bottom,#606060,#505050);border-bottom:1px solid #333;padding:0 6px;gap:2px;flex-shrink:0}
+.tb-group{display:flex;align-items:center;gap:1px;padding:0 4px}
+.tb-group+.tb-group{border-left:1px solid var(--border2);margin-left:2px}
+.tb-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:3px;border:1px solid transparent;position:relative}
+.tb-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15)}
+.tb-btn.active{background:var(--sel);border-color:var(--accent)}
+.tb-btn svg{width:16px;height:16px;fill:var(--text);stroke:none}
+.tb-btn.active svg{fill:var(--white)}
+.tb-btn[title]:hover::after{content:attr(title);position:absolute;top:100%;left:50%;transform:translateX(-50%);background:#222;color:#eee;padding:3px 8px;border-radius:3px;font-size:11px;white-space:nowrap;z-index:100;margin-top:4px;pointer-events:none;border:1px solid #555}
+.tb-label{font-size:11px;color:var(--dim);padding:0 6px;font-weight:500}
+.tb-spacer{flex:1}
 
-/* Layout */
+/* ── Menu bar ── */
+.menu-bar{display:flex;height:22px;background:#484848;border-bottom:1px solid #333;padding:0 4px;align-items:center;gap:0;flex-shrink:0}
+.menu-item{padding:2px 8px;font-size:11px;color:var(--dim)}
+.menu-item:hover{background:var(--sel);color:var(--white);border-radius:2px}
+
+/* ── Layout ── */
 .workspace{display:flex;flex:1;overflow:hidden}
-.panel-left{width:220px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
-.panel-right{width:240px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
-.viewport-container{flex:1;position:relative;overflow:hidden}
+.panel-left{width:200px;background:#484848;border-right:1px solid #333;display:flex;flex-direction:column;flex-shrink:0}
+.panel-right{width:220px;background:#484848;border-left:1px solid #333;display:flex;flex-direction:column;flex-shrink:0}
+.viewport-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--dark)}
+.viewport-header{display:flex;align-items:center;height:22px;background:#484848;border-bottom:1px solid #333;padding:0 8px;gap:8px;flex-shrink:0}
+.viewport-header .vp-label{font-size:11px;font-weight:600;color:var(--yellow)}
+.viewport-header select{font-size:10px;padding:1px 4px;background:#3a3a3a;border:1px solid #555}
+.viewport-canvas{flex:1;position:relative;overflow:hidden}
 #viewport{width:100%;height:100%;display:block}
 
-/* Panels */
-.panel-header{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:8px 10px 4px;border-bottom:1px solid var(--border)}
-.panel-section{padding:8px 10px}
-.panel-section h4{font-size:11px;font-weight:600;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+/* ── Panel sections ── */
+.p-tabs{display:flex;background:#444;border-bottom:1px solid #333}
+.p-tab{flex:1;text-align:center;padding:5px 0;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+.p-tab:hover{color:var(--text)}
+.p-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.p-scroll{flex:1;overflow-y:auto;overflow-x:hidden}
+.p-section{border-bottom:1px solid #3a3a3a}
+.p-header{display:flex;align-items:center;padding:4px 8px;background:#4a4a4a;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);cursor:pointer;gap:4px}
+.p-header .arr{font-size:8px;transition:transform .15s}
+.p-header.collapsed .arr{transform:rotate(-90deg)}
+.p-body{padding:6px 8px}
+.p-body.hidden{display:none}
+.p-row{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.p-row label{font-size:11px;color:var(--dim);width:55px;flex-shrink:0;text-align:right;padding-right:4px}
+.p-row input[type="number"]{flex:1;min-width:0}
+.p-row input[type="range"]{flex:1}
+.p-row .val{font-size:10px;width:28px;text-align:right;color:var(--dim)}
+.xyz-row{display:flex;align-items:center;gap:2px;margin-bottom:3px}
+.xyz-label{width:12px;font-size:10px;font-weight:700;text-align:center;flex-shrink:0}
+.xyz-label.x{color:var(--red)}.xyz-label.y{color:var(--green)}.xyz-label.z{color:var(--blue)}
+.xyz-row input{flex:1;min-width:0}
 
-/* Scene hierarchy */
-.scene-list{list-style:none;padding:0;flex:1;overflow-y:auto}
-.scene-item{padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:12px;border-left:2px solid transparent}
-.scene-item:hover{background:rgba(255,255,255,.04)}
-.scene-item.selected{background:var(--select);border-left-color:var(--accent)}
-.scene-item .icon{font-size:11px;opacity:.6}
-.scene-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.scene-item .vis{opacity:.4;font-size:10px;padding:2px 4px}
-.scene-item .vis:hover{opacity:1}
-.scene-item .vis.hidden{opacity:.2}
+/* ── Scene list ── */
+.scene-list{list-style:none;flex:1;overflow-y:auto}
+.s-item{padding:3px 8px;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11px;border-left:2px solid transparent}
+.s-item:hover{background:rgba(255,255,255,.05)}
+.s-item.sel{background:var(--sel-bg);border-left-color:var(--accent);color:var(--white)}
+.s-item .s-icon{width:14px;height:14px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+.s-item .s-icon.mesh{background:var(--blue);color:#fff}
+.s-item .s-icon.light{background:var(--yellow);color:#222}
+.s-item .s-icon.cam{background:var(--green);color:#fff}
+.s-item .s-icon.grp{background:var(--dim);color:#fff}
+.s-item .s-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.s-item .s-vis{opacity:.3;font-size:9px;cursor:pointer;padding:2px}
+.s-item .s-vis:hover{opacity:1}
 
-/* Add menu */
-.add-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px 10px}
-.add-btn{padding:6px;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:4px;font-size:11px}
-.add-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* ── Create panel buttons ── */
+.create-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:4px 8px}
+.create-btn{padding:5px 2px;text-align:center;background:#3a3a3a;border:1px solid #555;border-radius:2px;font-size:10px;cursor:pointer;color:var(--dim)}
+.create-btn:hover{border-color:var(--accent);color:var(--accent);background:#404040}
 
-/* Properties */
-.prop-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
-.prop-label{width:14px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0}
-.prop-label.x{color:#ef4444}.prop-label.y{color:#22c55e}.prop-label.z{color:#3b82f6}
-.prop-row input[type="number"]{flex:1}
-.mat-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.mat-row label{font-size:11px;color:var(--dim);width:70px;flex-shrink:0}
-.mat-row input[type="range"]{flex:1}
-.mat-row .val{font-size:11px;width:30px;text-align:right;color:var(--dim)}
+/* ── Timeline ── */
+.timeline{display:flex;align-items:center;height:26px;background:#444;border-top:1px solid #333;padding:0 8px;gap:6px;flex-shrink:0}
+.tl-btn{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:2px}
+.tl-btn:hover{background:rgba(255,255,255,.1)}
+.tl-track{flex:1;height:8px;background:#333;border-radius:4px;position:relative;cursor:pointer}
+.tl-thumb{position:absolute;top:-2px;left:0;width:12px;height:12px;background:var(--accent);border-radius:50%;border:1px solid var(--white)}
+.tl-frame{font-size:10px;color:var(--dim);width:60px;text-align:center}
 
-/* Toolbar */
-.toolbar-bottom{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0;height:30px}
-.mode-btn{padding:3px 10px;border:1px solid var(--border);border-radius:3px;font-size:11px;font-weight:600}
-.mode-btn.active{background:var(--accent);color:var(--white);border-color:var(--accent)}
-.tb-sep{width:1px;height:16px;background:var(--border)}
+/* ── Status bar ── */
+.status-bar{display:flex;align-items:center;height:20px;background:#3a3a3a;border-top:1px solid #333;padding:0 8px;gap:12px;flex-shrink:0;font-size:10px;color:var(--dim)}
+.status-bar .coord{font-family:'Consolas',monospace}
+.status-bar .coord .x{color:var(--red)}.status-bar .coord .y{color:var(--green)}.status-bar .coord .z{color:var(--blue)}
 
-/* Recent files */
-.recent-item{padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px}
-.recent-item:hover{background:rgba(255,255,255,.04)}
-.recent-thumb{width:32px;height:32px;border-radius:3px;background:var(--bg);object-fit:cover}
+/* ── Recent files ── */
+.recent-item{padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:11px}
+.recent-item:hover{background:rgba(255,255,255,.05)}
+.recent-thumb{width:28px;height:28px;border-radius:2px;background:#333;object-fit:cover;flex-shrink:0}
 .recent-meta{flex:1;overflow:hidden}
-.recent-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.recent-info{font-size:10px;color:var(--dim)}
-.recent-del{opacity:.3;padding:4px}
-.recent-del:hover{opacity:1;color:var(--danger)}
-
-/* Empty state */
-.empty{text-align:center;padding:20px;color:var(--dim);font-size:12px}
+.recent-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+.recent-info{font-size:9px;color:var(--dim)}
+.recent-del{opacity:.3;font-size:9px;padding:2px}
+.recent-del:hover{opacity:1;color:var(--red)}
+.empty-msg{text-align:center;padding:16px 8px;color:#777;font-size:11px}
 </style>
 </head>
 <body>
 
-<!-- Menubar -->
-<div class="menubar">
-  <span class="brand">Free3DStore Editor</span>
-  <div class="menu-group">
-    <button id="btn-new" title="New scene">New</button>
-    <button id="btn-open" title="Open from disk">Open</button>
-    <button id="btn-save" title="Save to disk">Save</button>
-    <button id="btn-save-browser" title="Save to browser storage">Save Local</button>
+<!-- Menu bar -->
+<div class="menu-bar">
+  <span class="menu-item" id="menu-new">File</span>
+  <span class="menu-item" id="menu-edit">Edit</span>
+  <span class="menu-item" id="menu-create">Create</span>
+  <span class="menu-item" id="menu-views">Views</span>
+  <span class="menu-item" id="menu-help">Help</span>
+</div>
+
+<!-- Main toolbar -->
+<div class="main-toolbar">
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-new" title="New Scene (Ctrl+N)"><svg viewBox="0 0 16 16"><path d="M3 1h7l3 3v9a2 2 0 01-2 2H3a2 2 0 01-2-2V3a2 2 0 012-2z"/></svg></button>
+    <button class="tb-btn" id="btn-open" title="Open (Ctrl+O)"><svg viewBox="0 0 16 16"><path d="M1 4v8a2 2 0 002 2h10l2-6H5L3 4z"/><path d="M3 2h4l2 2h4v2H3z"/></svg></button>
+    <button class="tb-btn" id="btn-save" title="Save (Ctrl+S)"><svg viewBox="0 0 16 16"><path d="M2 1h10l3 3v9a2 2 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2z"/><rect x="4" y="1" width="7" height="5" rx="1" fill="var(--dark)"/><rect x="4" y="9" width="8" height="5" rx="1" fill="var(--dark)"/></svg></button>
+    <button class="tb-btn" id="btn-save-local" title="Save to Browser"><svg viewBox="0 0 16 16"><path d="M8 1v8M4 6l4 4 4-4"/><rect x="1" y="11" width="14" height="4" rx="1"/></svg></button>
   </div>
-  <div class="menu-group" style="margin-left:12px">
-    <button id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
-    <button id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 16 16"><path d="M5 3L1 7l4 4" fill="none" stroke="var(--text)" stroke-width="2"/><path d="M2 7h8a4 4 0 014 4v0" fill="none" stroke="var(--text)" stroke-width="2"/></svg></button>
+    <button class="tb-btn" id="btn-redo" title="Redo (Ctrl+Y)"><svg viewBox="0 0 16 16"><path d="M11 3l4 4-4 4" fill="none" stroke="var(--text)" stroke-width="2"/><path d="M14 7H6a4 4 0 00-4 4v0" fill="none" stroke="var(--text)" stroke-width="2"/></svg></button>
   </div>
-  <div class="spacer"></div>
-  <span class="status" id="status">Ready</span>
+  <div class="tb-group">
+    <button class="tb-btn" id="btn-select" title="Select (Q)"><svg viewBox="0 0 16 16"><path d="M2 1l5 14 2-5 5-2z"/></svg></button>
+    <button class="tb-btn active" id="btn-move" title="Move (W)"><svg viewBox="0 0 16 16"><path d="M8 1v14M1 8h14M8 1l-3 3M8 1l3 3M8 15l-3-3M8 15l3-3M1 8l3-3M1 8l3 3M15 8l-3-3M15 8l-3 3" fill="none" stroke="var(--text)" stroke-width="1.5"/></svg></button>
+    <button class="tb-btn" id="btn-rotate" title="Rotate (E)"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--text)" stroke-width="1.5"/><path d="M11 2l2 2-2 2" fill="none" stroke="var(--text)" stroke-width="1.5"/></svg></button>
+    <button class="tb-btn" id="btn-scale" title="Scale (R)"><svg viewBox="0 0 16 16"><rect x="1" y="1" width="5" height="5" fill="none" stroke="var(--text)" stroke-width="1.5"/><rect x="10" y="10" width="5" height="5" fill="none" stroke="var(--text)" stroke-width="1.5"/><path d="M6 4l4 8M4 6l8 4" fill="none" stroke="var(--text)" stroke-width="1"/></svg></button>
+  </div>
+  <div class="tb-group">
+    <button class="tb-btn active" id="btn-snap-toggle" title="Snap Toggle (S)"><svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z" fill="none" stroke="var(--text)" stroke-width="1" stroke-dasharray="2,2"/><circle cx="8" cy="8" r="2"/></svg></button>
+    <button class="tb-btn active" id="btn-grid-toggle" title="Grid Toggle (G)"><svg viewBox="0 0 16 16"><path d="M0 4h16M0 8h16M0 12h16M4 0v16M8 0v16M12 0v16" fill="none" stroke="var(--text)" stroke-width=".5"/></svg></button>
+  </div>
+  <span class="tb-spacer"></span>
+  <span class="tb-label" id="status-msg">Ready</span>
 </div>
 
 <!-- Workspace -->
 <div class="workspace">
 
-  <!-- Left panel: hierarchy + add -->
+  <!-- Left: Scene Explorer -->
   <div class="panel-left">
-    <div class="panel-header">Scene</div>
-    <ul class="scene-list" id="scene-list"></ul>
-    <div class="panel-header">Add Object</div>
-    <div class="add-grid">
-      <button class="add-btn" data-prim="box">Box</button>
-      <button class="add-btn" data-prim="sphere">Sphere</button>
-      <button class="add-btn" data-prim="cylinder">Cylinder</button>
-      <button class="add-btn" data-prim="cone">Cone</button>
-      <button class="add-btn" data-prim="torus">Torus</button>
-      <button class="add-btn" data-prim="plane">Plane</button>
-      <button class="add-btn" data-prim="light">Light</button>
-      <button class="add-btn" data-prim="import">Import...</button>
+    <div class="p-tabs">
+      <div class="p-tab active" data-ltab="scene">Scene</div>
+      <div class="p-tab" data-ltab="recent">Recent</div>
     </div>
-    <div class="panel-header">Recent Files</div>
-    <div id="recent-list" style="overflow-y:auto;flex:1"><div class="empty">No recent files</div></div>
+    <div id="left-scene" class="p-scroll">
+      <ul class="scene-list" id="scene-list"></ul>
+    </div>
+    <div id="left-recent" class="p-scroll" style="display:none">
+      <div id="recent-list"><div class="empty-msg">No recent files</div></div>
+    </div>
   </div>
 
-  <!-- Viewport -->
-  <div class="viewport-container">
-    <canvas id="viewport"></canvas>
+  <!-- Center: Viewport -->
+  <div class="viewport-area">
+    <div class="viewport-header">
+      <span class="vp-label">Perspective</span>
+      <select id="shading-mode" title="Viewport shading">
+        <option value="smooth">Smooth</option>
+        <option value="wire">Wireframe</option>
+        <option value="smooth+wire">Smooth + Wire</option>
+        <option value="flat">Flat</option>
+      </select>
+      <span class="tb-spacer"></span>
+      <span style="font-size:10px;color:var(--dim)" id="vp-stats"></span>
+    </div>
+    <div class="viewport-canvas">
+      <canvas id="viewport"></canvas>
+    </div>
   </div>
 
-  <!-- Right panel: properties -->
-  <div class="panel-right" id="props-panel">
-    <div class="panel-header">Properties</div>
-    <div id="props-empty" class="empty" style="padding:40px 20px">Select an object to edit its properties</div>
-    <div id="props-content" style="display:none">
-      <div class="panel-section">
-        <h4>Name</h4>
-        <input type="text" id="prop-name" style="width:100%">
+  <!-- Right: Command Panel -->
+  <div class="panel-right">
+    <div class="p-tabs">
+      <div class="p-tab active" data-rtab="create">Create</div>
+      <div class="p-tab" data-rtab="modify">Modify</div>
+      <div class="p-tab" data-rtab="material">Material</div>
+    </div>
+
+    <!-- Create Tab -->
+    <div id="rt-create" class="p-scroll">
+      <div class="p-section">
+        <div class="p-header"><span class="arr">&#9660;</span> Standard Primitives</div>
+        <div class="p-body">
+          <div class="create-grid">
+            <button class="create-btn" data-prim="box">Box</button>
+            <button class="create-btn" data-prim="sphere">Sphere</button>
+            <button class="create-btn" data-prim="cylinder">Cylinder</button>
+            <button class="create-btn" data-prim="cone">Cone</button>
+            <button class="create-btn" data-prim="torus">Torus</button>
+            <button class="create-btn" data-prim="plane">Plane</button>
+            <button class="create-btn" data-prim="tube">Tube</button>
+            <button class="create-btn" data-prim="knot">Knot</button>
+            <button class="create-btn" data-prim="teapot">Teapot</button>
+          </div>
+        </div>
       </div>
-      <div class="panel-section">
-        <h4>Position</h4>
-        <div class="prop-row"><span class="prop-label x">X</span><input type="number" id="pos-x" step="0.1"><span class="prop-label y">Y</span><input type="number" id="pos-y" step="0.1"><span class="prop-label z">Z</span><input type="number" id="pos-z" step="0.1"></div>
+      <div class="p-section">
+        <div class="p-header"><span class="arr">&#9660;</span> Lights</div>
+        <div class="p-body">
+          <div class="create-grid">
+            <button class="create-btn" data-prim="point-light">Point</button>
+            <button class="create-btn" data-prim="dir-light">Direct</button>
+            <button class="create-btn" data-prim="spot-light">Spot</button>
+          </div>
+        </div>
       </div>
-      <div class="panel-section">
-        <h4>Rotation (deg)</h4>
-        <div class="prop-row"><span class="prop-label x">X</span><input type="number" id="rot-x" step="1"><span class="prop-label y">Y</span><input type="number" id="rot-y" step="1"><span class="prop-label z">Z</span><input type="number" id="rot-z" step="1"></div>
+      <div class="p-section">
+        <div class="p-header"><span class="arr">&#9660;</span> Import</div>
+        <div class="p-body">
+          <button class="create-btn" id="btn-import" style="width:100%;grid-column:1/-1">Import File...</button>
+        </div>
       </div>
-      <div class="panel-section">
-        <h4>Scale</h4>
-        <div class="prop-row"><span class="prop-label x">X</span><input type="number" id="scl-x" step="0.1" min="0.01"><span class="prop-label y">Y</span><input type="number" id="scl-y" step="0.1" min="0.01"><span class="prop-label z">Z</span><input type="number" id="scl-z" step="0.1" min="0.01"></div>
+      <div class="p-section" id="params-section" style="display:none">
+        <div class="p-header"><span class="arr">&#9660;</span> Parameters</div>
+        <div class="p-body" id="params-body"></div>
       </div>
-      <div class="panel-section" id="mat-section">
-        <h4>Material</h4>
-        <div class="mat-row"><label>Color</label><input type="color" id="mat-color" value="#808080"></div>
-        <div class="mat-row"><label>Metalness</label><input type="range" id="mat-metal" min="0" max="1" step="0.01" value="0"><span class="val" id="mat-metal-val">0</span></div>
-        <div class="mat-row"><label>Roughness</label><input type="range" id="mat-rough" min="0" max="1" step="0.01" value="0.5"><span class="val" id="mat-rough-val">0.5</span></div>
-        <div class="mat-row"><label>Wireframe</label><input type="checkbox" id="mat-wire"></div>
+    </div>
+
+    <!-- Modify Tab -->
+    <div id="rt-modify" class="p-scroll" style="display:none">
+      <div id="mod-empty" class="empty-msg" style="padding:30px 12px">Select an object</div>
+      <div id="mod-content" style="display:none">
+        <div class="p-section">
+          <div class="p-header"><span class="arr">&#9660;</span> Object</div>
+          <div class="p-body">
+            <div class="p-row"><label>Name</label><input type="text" id="prop-name" style="flex:1"></div>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="p-header"><span class="arr">&#9660;</span> Position</div>
+          <div class="p-body">
+            <div class="xyz-row"><span class="xyz-label x">X</span><input type="number" id="pos-x" step="0.1"><span class="xyz-label y">Y</span><input type="number" id="pos-y" step="0.1"><span class="xyz-label z">Z</span><input type="number" id="pos-z" step="0.1"></div>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="p-header"><span class="arr">&#9660;</span> Rotation</div>
+          <div class="p-body">
+            <div class="xyz-row"><span class="xyz-label x">X</span><input type="number" id="rot-x" step="1"><span class="xyz-label y">Y</span><input type="number" id="rot-y" step="1"><span class="xyz-label z">Z</span><input type="number" id="rot-z" step="1"></div>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="p-header"><span class="arr">&#9660;</span> Scale</div>
+          <div class="p-body">
+            <div class="xyz-row"><span class="xyz-label x">X</span><input type="number" id="scl-x" step="0.1" min="0.01"><span class="xyz-label y">Y</span><input type="number" id="scl-y" step="0.1" min="0.01"><span class="xyz-label z">Z</span><input type="number" id="scl-z" step="0.1" min="0.01"></div>
+          </div>
+        </div>
+        <div class="p-section" id="light-props" style="display:none">
+          <div class="p-header"><span class="arr">&#9660;</span> Light</div>
+          <div class="p-body">
+            <div class="p-row"><label>Color</label><input type="color" id="light-color" value="#ffffff"></div>
+            <div class="p-row"><label>Intensity</label><input type="range" id="light-int" min="0" max="10" step="0.1" value="1"><span class="val" id="light-int-val">1.0</span></div>
+          </div>
+        </div>
+        <div class="p-section">
+          <div class="p-body" style="display:flex;gap:4px">
+            <button id="btn-duplicate" style="flex:1;padding:4px;background:#3a3a3a;border:1px solid #555;border-radius:2px;font-size:10px">Clone</button>
+            <button id="btn-delete" style="flex:1;padding:4px;background:rgba(214,73,55,.15);border:1px solid rgba(214,73,55,.4);border-radius:2px;font-size:10px;color:var(--red)">Delete</button>
+          </div>
+        </div>
       </div>
-      <div class="panel-section" id="light-section" style="display:none">
-        <h4>Light</h4>
-        <div class="mat-row"><label>Color</label><input type="color" id="light-color" value="#ffffff"></div>
-        <div class="mat-row"><label>Intensity</label><input type="range" id="light-intensity" min="0" max="5" step="0.1" value="1"><span class="val" id="light-int-val">1</span></div>
-      </div>
-      <div class="panel-section">
-        <button id="btn-duplicate" style="width:100%;padding:6px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;margin-bottom:4px">Duplicate</button>
-        <button id="btn-delete" style="width:100%;padding:6px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:4px;color:#ef4444">Delete</button>
+    </div>
+
+    <!-- Material Tab -->
+    <div id="rt-material" class="p-scroll" style="display:none">
+      <div id="mat-empty" class="empty-msg" style="padding:30px 12px">Select a mesh object</div>
+      <div id="mat-content" style="display:none">
+        <div class="p-section">
+          <div class="p-header"><span class="arr">&#9660;</span> Standard Material</div>
+          <div class="p-body">
+            <div class="p-row"><label>Color</label><input type="color" id="mat-color" value="#808080"><span class="val" id="mat-color-hex">#808080</span></div>
+            <div class="p-row"><label>Metalness</label><input type="range" id="mat-metal" min="0" max="1" step="0.01" value="0"><span class="val" id="mat-metal-val">0.00</span></div>
+            <div class="p-row"><label>Roughness</label><input type="range" id="mat-rough" min="0" max="1" step="0.01" value="0.5"><span class="val" id="mat-rough-val">0.50</span></div>
+            <div class="p-row"><label>Opacity</label><input type="range" id="mat-opacity" min="0" max="1" step="0.01" value="1"><span class="val" id="mat-opacity-val">1.00</span></div>
+            <div class="p-row"><label>Emissive</label><input type="color" id="mat-emissive" value="#000000"></div>
+            <div class="p-row"><label>Wireframe</label><input type="checkbox" id="mat-wire"></div>
+            <div class="p-row"><label>Double Side</label><input type="checkbox" id="mat-double" checked></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Bottom toolbar -->
-<div class="toolbar-bottom">
-  <button class="mode-btn active" data-mode="translate" id="mode-translate">Move (W)</button>
-  <button class="mode-btn" data-mode="rotate" id="mode-rotate">Rotate (E)</button>
-  <button class="mode-btn" data-mode="scale" id="mode-scale">Scale (R)</button>
-  <span class="tb-sep"></span>
-  <button class="mode-btn" id="btn-grid-toggle" title="Toggle grid">Grid</button>
-  <button class="mode-btn" id="btn-snap" title="Toggle snapping">Snap</button>
-  <span class="spacer"></span>
-  <span class="status" id="obj-count">0 objects</span>
+<!-- Timeline -->
+<div class="timeline">
+  <button class="tl-btn" title="Go to start">⏮</button>
+  <button class="tl-btn" title="Previous key">◀</button>
+  <button class="tl-btn" title="Play" id="tl-play">▶</button>
+  <button class="tl-btn" title="Next key">▶</button>
+  <button class="tl-btn" title="Go to end">⏭</button>
+  <div class="tl-track"><div class="tl-thumb" id="tl-thumb"></div></div>
+  <span class="tl-frame"><input type="number" value="0" min="0" max="100" style="width:36px;text-align:center;font-size:10px" id="tl-frame"> / 100</span>
+</div>
+
+<!-- Status bar -->
+<div class="status-bar">
+  <span id="sb-sel">No selection</span>
+  <span>|</span>
+  <span class="coord">X:<span class="x" id="sb-x">0.00</span> Y:<span class="y" id="sb-y">0.00</span> Z:<span class="z" id="sb-z">0.00</span></span>
+  <span>|</span>
+  <span id="sb-info">Verts: 0  Faces: 0</span>
+  <span style="flex:1"></span>
+  <span id="sb-snap">Snap: Off</span>
+  <span>|</span>
+  <span>Grid: 1.0</span>
 </div>
 
 <script type="importmap">
@@ -202,672 +347,516 @@ import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
-// ── State ──────────────────────────────────────────────
-const objects = [];       // user-created objects in scene
-let selected = null;      // currently selected object
-const undoStack = [];
-const redoStack = [];
-let snapEnabled = false;
-const DEG = 180 / Math.PI;
-const RAD = Math.PI / 180;
+// ── Constants ─────────────────────────────────────────
+const DEG = 180 / Math.PI, RAD = Math.PI / 180;
+const COLORS = { box:0x5b9bd5, sphere:0xed7d31, cylinder:0x70ad47, cone:0xffc000, torus:0x9b59b6, plane:0x808080, tube:0x44a8b3, knot:0xe74c3c, teapot:0xc77dba };
 
-// ── Scene setup ────────────────────────────────────────
+// ── State ─────────────────────────────────────────────
+const objects = [];
+let selected = null, selOutline = null;
+const undoStack = [], redoStack = [];
+let snapEnabled = true, shadingMode = 'smooth';
+const counters = {};
+
+// ── Scene ─────────────────────────────────────────────
 const canvas = document.getElementById('viewport');
-const container = canvas.parentElement;
+const vpContainer = canvas.parentElement;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a1a2e);
+scene.background = new THREE.Color(0x3d3d3d);
+scene.fog = new THREE.Fog(0x3d3d3d, 40, 80);
 
-const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.01, 1000);
-camera.position.set(4, 3, 4);
+const camera = new THREE.PerspectiveCamera(45, vpContainer.clientWidth / vpContainer.clientHeight, 0.01, 500);
+camera.position.set(8, 6, 8);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setSize(vpContainer.clientWidth, vpContainer.clientHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.0;
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const orbit = new OrbitControls(camera, canvas);
 orbit.enableDamping = true;
-orbit.dampingFactor = 0.08;
+orbit.dampingFactor = 0.1;
+orbit.target.set(0, 0, 0);
 
-const transform = new TransformControls(camera, canvas);
-transform.size = 0.8;
-scene.add(transform.getHelper());
-transform.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
-transform.addEventListener('objectChange', () => { updateProps(); });
+const transformCtl = new TransformControls(camera, canvas);
+transformCtl.size = 0.75;
+scene.add(transformCtl.getHelper());
+transformCtl.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
+transformCtl.addEventListener('objectChange', updateUI);
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(5, 8, 5);
-dirLight.castShadow = true;
-scene.add(dirLight);
+scene.add(new THREE.AmbientLight(0x8899aa, 0.6));
+const sun = new THREE.DirectionalLight(0xfff5e0, 1.2);
+sun.position.set(8, 12, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -15; sun.shadow.camera.right = 15;
+sun.shadow.camera.top = 15; sun.shadow.camera.bottom = -15;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xaabbcc, 0.3);
+fill.position.set(-5, 4, -8);
+scene.add(fill);
 
-// Grid
-const grid = new THREE.GridHelper(20, 20, 0x444466, 0x333355);
+// Ground grid
+const grid = new THREE.GridHelper(40, 40, 0x555555, 0x444444);
+grid.material.transparent = true;
+grid.material.opacity = 0.5;
 scene.add(grid);
 
-// Raycaster for selection
+// Ground plane (shadow catcher)
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 40),
+  new THREE.ShadowMaterial({ opacity: 0.15 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// ── Animation loop ─────────────────────────────────────
+// ── Animate ───────────────────────────────────────────
 function animate() {
   requestAnimationFrame(animate);
   orbit.update();
+  if (selOutline) {
+    selOutline.position.copy(selected.position);
+    selOutline.rotation.copy(selected.rotation);
+    selOutline.scale.copy(selected.scale);
+  }
   renderer.render(scene, camera);
 }
 animate();
 
 window.addEventListener('resize', () => {
-  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.aspect = vpContainer.clientWidth / vpContainer.clientHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setSize(vpContainer.clientWidth, vpContainer.clientHeight);
 });
 
-// ── Undo / Redo ────────────────────────────────────────
+// ── Naming (3DS Max style) ────────────────────────────
+function genName(type) {
+  counters[type] = (counters[type] || 0) + 1;
+  const n = String(counters[type]).padStart(3, '0');
+  return `${type.charAt(0).toUpperCase() + type.slice(1)}${n}`;
+}
+
+// ── Undo/Redo ─────────────────────────────────────────
 function snapshot() {
-  undoStack.push(objects.map(o => ({
-    uuid: o.uuid,
-    pos: o.position.clone(),
-    rot: o.rotation.clone(),
-    scl: o.scale.clone(),
-  })));
-  if (undoStack.length > 50) undoStack.shift();
+  undoStack.push(objects.map(o => ({ uuid:o.uuid, pos:o.position.clone(), rot:o.rotation.clone(), scl:o.scale.clone() })));
+  if (undoStack.length > 60) undoStack.shift();
   redoStack.length = 0;
 }
-
-function restoreSnapshot(stack, oppositeStack) {
+function restore(stack, opp) {
   if (!stack.length) return;
-  oppositeStack.push(objects.map(o => ({
-    uuid: o.uuid,
-    pos: o.position.clone(),
-    rot: o.rotation.clone(),
-    scl: o.scale.clone(),
-  })));
+  opp.push(objects.map(o => ({ uuid:o.uuid, pos:o.position.clone(), rot:o.rotation.clone(), scl:o.scale.clone() })));
   const snap = stack.pop();
-  for (const s of snap) {
-    const obj = objects.find(o => o.uuid === s.uuid);
-    if (obj) {
-      obj.position.copy(s.pos);
-      obj.rotation.copy(s.rot);
-      obj.scale.copy(s.scl);
-    }
-  }
-  updateProps();
+  for (const s of snap) { const o = objects.find(x => x.uuid === s.uuid); if (o) { o.position.copy(s.pos); o.rotation.copy(s.rot); o.scale.copy(s.scl); } }
+  updateUI();
 }
 
-// ── Add primitives ─────────────────────────────────────
-let nameCounter = 0;
+// ── Selection outline ─────────────────────────────────
+function setOutline(obj) {
+  if (selOutline) { scene.remove(selOutline); selOutline = null; }
+  if (!obj || !obj.isMesh) return;
+  const edges = new THREE.EdgesGeometry(obj.geometry, 15);
+  selOutline = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 }));
+  selOutline.raycast = () => {};
+  scene.add(selOutline);
+}
 
-function addObject(obj, name) {
+// ── Add object ────────────────────────────────────────
+function makeMat(color) { return new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.05, side: THREE.DoubleSide }); }
+
+function addObject(obj, type) {
   snapshot();
-  obj.userData.editorName = name || `Object ${++nameCounter}`;
-  obj.userData.editorType = 'mesh';
-  if (obj.isMesh) {
-    obj.castShadow = true;
-    obj.receiveShadow = true;
-  }
+  obj.userData.type = type;
+  obj.userData.editorName = genName(type);
+  if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
   scene.add(obj);
   objects.push(obj);
   selectObject(obj);
-  refreshHierarchy();
-  status(`Added ${obj.userData.editorName}`);
+  refreshList();
+  showStatus(`Created ${obj.userData.editorName}`);
 }
 
-function makeMat(color = 0x808080) {
-  return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0 });
-}
-
-const primitives = {
-  box: () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), makeMat(0x4a9eff)),
-  sphere: () => new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), makeMat(0xff6b6b)),
-  cylinder: () => new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1, 32), makeMat(0x51cf66)),
-  cone: () => new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 32), makeMat(0xfcc419)),
-  torus: () => new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.15, 16, 48), makeMat(0xcc5de8)),
-  plane: () => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), makeMat(0x868e96));
-    m.rotation.x = -Math.PI / 2;
-    m.receiveShadow = true;
-    return m;
-  },
-  light: () => {
-    const l = new THREE.PointLight(0xffffff, 1, 20);
-    l.position.set(0, 2, 0);
-    l.userData.editorType = 'light';
-    const helper = new THREE.PointLightHelper(l, 0.2);
-    l.userData.helper = helper;
-    scene.add(helper);
-    return l;
-  },
+const primFactory = {
+  box:      () => new THREE.Mesh(new THREE.BoxGeometry(1,1,1), makeMat(COLORS.box)),
+  sphere:   () => new THREE.Mesh(new THREE.SphereGeometry(0.5,32,24), makeMat(COLORS.sphere)),
+  cylinder: () => new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,1,32), makeMat(COLORS.cylinder)),
+  cone:     () => new THREE.Mesh(new THREE.ConeGeometry(0.5,1,32), makeMat(COLORS.cone)),
+  torus:    () => new THREE.Mesh(new THREE.TorusGeometry(0.5,0.18,16,48), makeMat(COLORS.torus)),
+  plane:    () => { const m = new THREE.Mesh(new THREE.PlaneGeometry(2,2), makeMat(COLORS.plane)); m.rotation.x=-Math.PI/2; return m; },
+  tube:     () => new THREE.Mesh(new THREE.TorusGeometry(0.5,0.08,8,48), makeMat(COLORS.tube)),
+  knot:     () => new THREE.Mesh(new THREE.TorusKnotGeometry(0.4,0.12,100,16), makeMat(COLORS.knot)),
+  teapot:   () => new THREE.Mesh(new THREE.IcosahedronGeometry(0.5,2), makeMat(COLORS.teapot)),
+  'point-light': () => { const l=new THREE.PointLight(0xffffff,2,20); l.position.y=2; l.userData.type='point-light'; const h=new THREE.PointLightHelper(l,0.15); l.userData.helper=h; scene.add(h); return l; },
+  'dir-light':   () => { const l=new THREE.DirectionalLight(0xffffff,1); l.position.set(2,4,2); l.userData.type='dir-light'; const h=new THREE.DirectionalLightHelper(l,0.4); l.userData.helper=h; scene.add(h); return l; },
+  'spot-light':  () => { const l=new THREE.SpotLight(0xffffff,2,15,Math.PI/6); l.position.set(0,3,0); l.userData.type='spot-light'; const h=new THREE.SpotLightHelper(l); l.userData.helper=h; scene.add(h); return l; },
 };
 
-document.querySelectorAll('.add-btn').forEach(btn => {
+document.querySelectorAll('.create-btn[data-prim]').forEach(btn => {
   btn.addEventListener('click', () => {
     const type = btn.dataset.prim;
-    if (type === 'import') { importFile(); return; }
-    if (primitives[type]) {
-      const obj = primitives[type]();
-      addObject(obj, `${type.charAt(0).toUpperCase() + type.slice(1)} ${++nameCounter}`);
-      nameCounter--; // addObject already increments
-    }
+    if (primFactory[type]) addObject(primFactory[type](), type);
   });
 });
 
-// ── Selection ──────────────────────────────────────────
-function selectObject(obj) {
-  // Remove outline from previous
-  if (selected && selected !== obj) {
-    selected.traverse(c => { if (c.isMesh) c.material.emissive?.set(0x000000); });
-  }
+document.getElementById('btn-import').addEventListener('click', () => document.getElementById('btn-open').click());
 
+// ── Selection ─────────────────────────────────────────
+function selectObject(obj) {
   selected = obj;
-  if (obj) {
-    transform.attach(obj);
-    obj.traverse(c => { if (c.isMesh) c.material.emissive?.set(0x111122); });
-  } else {
-    transform.detach();
-  }
-  updateProps();
-  refreshHierarchy();
+  if (obj) { transformCtl.attach(obj); setOutline(obj); }
+  else { transformCtl.detach(); setOutline(null); }
+  updateUI();
+  refreshList();
 }
 
-canvas.addEventListener('pointerdown', (e) => {
-  if (e.button !== 0) return;
-  if (transform.dragging) return;
-
+canvas.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || transformCtl.dragging) return;
   const rect = canvas.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  mouse.x = ((e.clientX-rect.left)/rect.width)*2-1;
+  mouse.y = -((e.clientY-rect.top)/rect.height)*2+1;
   raycaster.setFromCamera(mouse, camera);
-
   const meshes = [];
-  for (const obj of objects) {
-    obj.traverse(c => { if (c.isMesh) meshes.push(c); });
-    if (obj.isLight) meshes.push(obj); // lights aren't meshes but we want to pick them
-  }
-
+  objects.forEach(o => o.traverse(c => { if (c.isMesh) meshes.push(c); }));
   const hits = raycaster.intersectObjects(meshes, false);
   if (hits.length) {
-    // Find the top-level editor object
-    let target = hits[0].object;
-    while (target.parent && !objects.includes(target)) target = target.parent;
-    if (objects.includes(target)) { selectObject(target); return; }
+    let t = hits[0].object;
+    while (t.parent && !objects.includes(t)) t = t.parent;
+    if (objects.includes(t)) { selectObject(t); return; }
   }
   selectObject(null);
 });
 
-// ── Properties panel ───────────────────────────────────
-const propName = document.getElementById('prop-name');
-const posX = document.getElementById('pos-x'), posY = document.getElementById('pos-y'), posZ = document.getElementById('pos-z');
-const rotX = document.getElementById('rot-x'), rotY = document.getElementById('rot-y'), rotZ = document.getElementById('rot-z');
-const sclX = document.getElementById('scl-x'), sclY = document.getElementById('scl-y'), sclZ = document.getElementById('scl-z');
-const matColor = document.getElementById('mat-color');
-const matMetal = document.getElementById('mat-metal'), matMetalVal = document.getElementById('mat-metal-val');
-const matRough = document.getElementById('mat-rough'), matRoughVal = document.getElementById('mat-rough-val');
-const matWire = document.getElementById('mat-wire');
-const lightColor = document.getElementById('light-color');
-const lightIntensity = document.getElementById('light-intensity'), lightIntVal = document.getElementById('light-int-val');
-
-function updateProps() {
-  const propsEmpty = document.getElementById('props-empty');
-  const propsContent = document.getElementById('props-content');
-  const matSection = document.getElementById('mat-section');
-  const lightSection = document.getElementById('light-section');
+// ── Update UI ─────────────────────────────────────────
+function updateUI() {
+  const modEmpty = document.getElementById('mod-empty');
+  const modContent = document.getElementById('mod-content');
+  const matEmpty = document.getElementById('mat-empty');
+  const matContent = document.getElementById('mat-content');
+  const lightProps = document.getElementById('light-props');
 
   if (!selected) {
-    propsEmpty.style.display = '';
-    propsContent.style.display = 'none';
+    modEmpty.style.display = ''; modContent.style.display = 'none';
+    matEmpty.style.display = ''; matContent.style.display = 'none';
+    document.getElementById('sb-sel').textContent = 'No selection';
+    document.getElementById('sb-info').textContent = 'Verts: 0  Faces: 0';
     return;
   }
 
-  propsEmpty.style.display = 'none';
-  propsContent.style.display = '';
+  modEmpty.style.display = 'none'; modContent.style.display = '';
+  document.getElementById('prop-name').value = selected.userData.editorName || '';
 
-  propName.value = selected.userData.editorName || '';
-  posX.value = r(selected.position.x); posY.value = r(selected.position.y); posZ.value = r(selected.position.z);
-  rotX.value = r(selected.rotation.x * DEG); rotY.value = r(selected.rotation.y * DEG); rotZ.value = r(selected.rotation.z * DEG);
-  sclX.value = r(selected.scale.x); sclY.value = r(selected.scale.y); sclZ.value = r(selected.scale.z);
+  const p = selected.position, ro = selected.rotation, s = selected.scale;
+  document.getElementById('pos-x').value = r(p.x); document.getElementById('pos-y').value = r(p.y); document.getElementById('pos-z').value = r(p.z);
+  document.getElementById('rot-x').value = r(ro.x*DEG); document.getElementById('rot-y').value = r(ro.y*DEG); document.getElementById('rot-z').value = r(ro.z*DEG);
+  document.getElementById('scl-x').value = r(s.x); document.getElementById('scl-y').value = r(s.y); document.getElementById('scl-z').value = r(s.z);
 
-  const isLight = selected.isLight;
-  matSection.style.display = isLight ? 'none' : '';
-  lightSection.style.display = isLight ? '' : 'none';
+  document.getElementById('sb-sel').textContent = selected.userData.editorName;
+  document.getElementById('sb-x').textContent = r(p.x); document.getElementById('sb-y').textContent = r(p.y); document.getElementById('sb-z').textContent = r(p.z);
 
-  if (isLight) {
-    lightColor.value = '#' + selected.color.getHexString();
-    lightIntensity.value = selected.intensity;
-    lightIntVal.textContent = selected.intensity.toFixed(1);
-  } else if (selected.isMesh && selected.material) {
-    const m = selected.material;
-    matColor.value = '#' + (m.color?.getHexString() || '808080');
-    matMetal.value = m.metalness ?? 0; matMetalVal.textContent = (m.metalness ?? 0).toFixed(2);
-    matRough.value = m.roughness ?? 0.5; matRoughVal.textContent = (m.roughness ?? 0.5).toFixed(2);
-    matWire.checked = m.wireframe || false;
+  lightProps.style.display = selected.isLight ? '' : 'none';
+  if (selected.isLight) {
+    document.getElementById('light-color').value = '#' + selected.color.getHexString();
+    document.getElementById('light-int').value = selected.intensity;
+    document.getElementById('light-int-val').textContent = selected.intensity.toFixed(1);
   }
 
-  document.getElementById('obj-count').textContent = `${objects.length} object${objects.length !== 1 ? 's' : ''}`;
+  if (selected.isMesh) {
+    matEmpty.style.display = 'none'; matContent.style.display = '';
+    const m = selected.material;
+    document.getElementById('mat-color').value = '#' + (m.color?.getHexString() || '808080');
+    document.getElementById('mat-color-hex').textContent = '#' + (m.color?.getHexString() || '808080');
+    document.getElementById('mat-metal').value = m.metalness ?? 0; document.getElementById('mat-metal-val').textContent = (m.metalness ?? 0).toFixed(2);
+    document.getElementById('mat-rough').value = m.roughness ?? 0.5; document.getElementById('mat-rough-val').textContent = (m.roughness ?? 0.5).toFixed(2);
+    document.getElementById('mat-opacity').value = m.opacity ?? 1; document.getElementById('mat-opacity-val').textContent = (m.opacity ?? 1).toFixed(2);
+    document.getElementById('mat-emissive').value = '#' + (m.emissive?.getHexString() || '000000');
+    document.getElementById('mat-wire').checked = m.wireframe || false;
+    document.getElementById('mat-double').checked = m.side === THREE.DoubleSide;
+
+    let verts = 0, faces = 0;
+    selected.traverse(c => { if (c.isMesh && c.geometry) { verts += c.geometry.attributes.position?.count || 0; faces += c.geometry.index ? c.geometry.index.count/3 : (c.geometry.attributes.position?.count||0)/3; }});
+    document.getElementById('sb-info').textContent = `Verts: ${Math.floor(verts)}  Faces: ${Math.floor(faces)}`;
+  } else {
+    matEmpty.style.display = ''; matContent.style.display = 'none';
+    document.getElementById('sb-info').textContent = selected.isLight ? selected.userData.type : '';
+  }
+
+  document.getElementById('vp-stats').textContent = `${objects.length} objects`;
 }
 
-function r(v) { return Math.round(v * 100) / 100; }
+function r(v) { return Math.round(v*100)/100; }
 
-// Bind property inputs
-function bindTransform(input, axis, prop, mult = 1) {
-  input.addEventListener('change', () => {
-    if (!selected) return;
-    snapshot();
-    selected[prop][axis] = parseFloat(input.value) * mult;
+// ── Bind property inputs ──────────────────────────────
+function bind(id, axis, prop, mult=1) {
+  document.getElementById(id).addEventListener('change', function() {
+    if (!selected) return; snapshot();
+    selected[prop][axis] = parseFloat(this.value) * mult;
     if (selected.userData.helper) selected.userData.helper.update();
+    updateUI();
   });
 }
-bindTransform(posX, 'x', 'position'); bindTransform(posY, 'y', 'position'); bindTransform(posZ, 'z', 'position');
-bindTransform(rotX, 'x', 'rotation', RAD); bindTransform(rotY, 'y', 'rotation', RAD); bindTransform(rotZ, 'z', 'rotation', RAD);
-bindTransform(sclX, 'x', 'scale'); bindTransform(sclY, 'y', 'scale'); bindTransform(sclZ, 'z', 'scale');
+bind('pos-x','x','position'); bind('pos-y','y','position'); bind('pos-z','z','position');
+bind('rot-x','x','rotation',RAD); bind('rot-y','y','rotation',RAD); bind('rot-z','z','rotation',RAD);
+bind('scl-x','x','scale'); bind('scl-y','y','scale'); bind('scl-z','z','scale');
 
-propName.addEventListener('change', () => {
-  if (selected) { selected.userData.editorName = propName.value; refreshHierarchy(); }
-});
+document.getElementById('prop-name').addEventListener('change', function() { if (selected) { selected.userData.editorName = this.value; refreshList(); } });
 
-matColor.addEventListener('input', () => {
-  if (selected?.isMesh) selected.material.color.set(matColor.value);
-});
-matMetal.addEventListener('input', () => {
-  if (selected?.isMesh) { selected.material.metalness = parseFloat(matMetal.value); matMetalVal.textContent = matMetal.value; }
-});
-matRough.addEventListener('input', () => {
-  if (selected?.isMesh) { selected.material.roughness = parseFloat(matRough.value); matRoughVal.textContent = matRough.value; }
-});
-matWire.addEventListener('change', () => {
-  if (selected?.isMesh) selected.material.wireframe = matWire.checked;
-});
-lightColor.addEventListener('input', () => {
-  if (selected?.isLight) { selected.color.set(lightColor.value); selected.userData.helper?.update(); }
-});
-lightIntensity.addEventListener('input', () => {
-  if (selected?.isLight) { selected.intensity = parseFloat(lightIntensity.value); lightIntVal.textContent = parseFloat(lightIntensity.value).toFixed(1); }
-});
+// Material bindings
+document.getElementById('mat-color').addEventListener('input', function() { if (selected?.isMesh) { selected.material.color.set(this.value); document.getElementById('mat-color-hex').textContent = this.value; }});
+document.getElementById('mat-metal').addEventListener('input', function() { if (selected?.isMesh) { selected.material.metalness = +this.value; document.getElementById('mat-metal-val').textContent = (+this.value).toFixed(2); }});
+document.getElementById('mat-rough').addEventListener('input', function() { if (selected?.isMesh) { selected.material.roughness = +this.value; document.getElementById('mat-rough-val').textContent = (+this.value).toFixed(2); }});
+document.getElementById('mat-opacity').addEventListener('input', function() { if (selected?.isMesh) { selected.material.opacity = +this.value; selected.material.transparent = +this.value < 1; document.getElementById('mat-opacity-val').textContent = (+this.value).toFixed(2); }});
+document.getElementById('mat-emissive').addEventListener('input', function() { if (selected?.isMesh) selected.material.emissive.set(this.value); });
+document.getElementById('mat-wire').addEventListener('change', function() { if (selected?.isMesh) selected.material.wireframe = this.checked; });
+document.getElementById('mat-double').addEventListener('change', function() { if (selected?.isMesh) selected.material.side = this.checked ? THREE.DoubleSide : THREE.FrontSide; });
 
-// ── Scene hierarchy ────────────────────────────────────
+// Light bindings
+document.getElementById('light-color').addEventListener('input', function() { if (selected?.isLight) { selected.color.set(this.value); selected.userData.helper?.update?.(); }});
+document.getElementById('light-int').addEventListener('input', function() { if (selected?.isLight) { selected.intensity = +this.value; document.getElementById('light-int-val').textContent = (+this.value).toFixed(1); }});
+
+// ── Scene list ────────────────────────────────────────
 const sceneList = document.getElementById('scene-list');
-
-function refreshHierarchy() {
+function refreshList() {
   sceneList.innerHTML = '';
   for (const obj of objects) {
     const li = document.createElement('li');
-    li.className = 'scene-item' + (obj === selected ? ' selected' : '');
-    const icon = obj.isLight ? '💡' : '🧊';
-    li.innerHTML = `<span class="icon">${icon}</span><span class="name">${obj.userData.editorName || 'Object'}</span><span class="vis" title="Toggle visibility">${obj.visible ? '👁' : '—'}</span>`;
-    li.querySelector('.name').addEventListener('click', () => selectObject(obj));
-    li.querySelector('.vis').addEventListener('click', (e) => {
-      e.stopPropagation();
-      obj.visible = !obj.visible;
-      if (obj.userData.helper) obj.userData.helper.visible = obj.visible;
-      refreshHierarchy();
-    });
+    li.className = 's-item' + (obj === selected ? ' sel' : '');
+    const iconClass = obj.isLight ? 'light' : 'mesh';
+    const iconText = obj.isLight ? 'L' : 'M';
+    li.innerHTML = `<span class="s-icon ${iconClass}">${iconText}</span><span class="s-name">${obj.userData.editorName}</span><span class="s-vis">${obj.visible?'&#9679;':'&#9675;'}</span>`;
+    li.querySelector('.s-name').addEventListener('click', () => selectObject(obj));
+    li.querySelector('.s-vis').addEventListener('click', e => { e.stopPropagation(); obj.visible = !obj.visible; if (obj.userData.helper) obj.userData.helper.visible = obj.visible; refreshList(); });
     sceneList.appendChild(li);
   }
-  document.getElementById('obj-count').textContent = `${objects.length} object${objects.length !== 1 ? 's' : ''}`;
 }
 
-// ── Delete / Duplicate ─────────────────────────────────
+// ── Delete / Clone ────────────────────────────────────
 document.getElementById('btn-delete').addEventListener('click', deleteSelected);
-document.getElementById('btn-duplicate').addEventListener('click', duplicateSelected);
+document.getElementById('btn-duplicate').addEventListener('click', cloneSelected);
 
 function deleteSelected() {
-  if (!selected) return;
-  snapshot();
-  scene.remove(selected);
-  if (selected.userData.helper) scene.remove(selected.userData.helper);
+  if (!selected) return; snapshot();
+  scene.remove(selected); if (selected.userData.helper) scene.remove(selected.userData.helper);
   objects.splice(objects.indexOf(selected), 1);
-  transform.detach();
-  status(`Deleted ${selected.userData.editorName}`);
-  selected = null;
-  updateProps();
-  refreshHierarchy();
+  showStatus(`Deleted ${selected.userData.editorName}`);
+  selectObject(null); refreshList();
 }
 
-function duplicateSelected() {
-  if (!selected) return;
-  snapshot();
+function cloneSelected() {
+  if (!selected) return; snapshot();
   const clone = selected.clone();
-  clone.position.x += 1;
+  clone.position.x += 1.5;
   if (clone.isMesh) clone.material = selected.material.clone();
-  clone.userData = { ...selected.userData, editorName: selected.userData.editorName + ' copy' };
-  if (clone.isLight) {
-    const helper = new THREE.PointLightHelper(clone, 0.2);
-    clone.userData.helper = helper;
-    scene.add(helper);
+  clone.userData = { ...selected.userData, editorName: selected.userData.editorName + ' (clone)' };
+  if (clone.isLight && clone.userData.helper) {
+    let h;
+    if (clone.isPointLight) h = new THREE.PointLightHelper(clone, 0.15);
+    else if (clone.isDirectionalLight) h = new THREE.DirectionalLightHelper(clone, 0.4);
+    else if (clone.isSpotLight) h = new THREE.SpotLightHelper(clone);
+    if (h) { clone.userData.helper = h; scene.add(h); }
   }
-  scene.add(clone);
-  objects.push(clone);
-  selectObject(clone);
-  refreshHierarchy();
-  status(`Duplicated ${selected.userData.editorName}`);
+  scene.add(clone); objects.push(clone);
+  selectObject(clone); refreshList();
 }
 
-// ── Transform modes ────────────────────────────────────
-document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
-  btn.addEventListener('click', () => setMode(btn.dataset.mode));
-});
-
+// ── Transform modes ───────────────────────────────────
+const modeButtons = { btn_select:null, btn_move:'translate', btn_rotate:'rotate', btn_scale:'scale' };
 function setMode(mode) {
-  transform.setMode(mode);
-  document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  if (mode) transformCtl.setMode(mode);
+  ['btn-select','btn-move','btn-rotate','btn-scale'].forEach(id => document.getElementById(id).classList.remove('active'));
+  if (mode === 'translate') document.getElementById('btn-move').classList.add('active');
+  else if (mode === 'rotate') document.getElementById('btn-rotate').classList.add('active');
+  else if (mode === 'scale') document.getElementById('btn-scale').classList.add('active');
+  else document.getElementById('btn-select').classList.add('active');
 }
+document.getElementById('btn-select').addEventListener('click', () => { transformCtl.detach(); setMode(null); });
+document.getElementById('btn-move').addEventListener('click', () => setMode('translate'));
+document.getElementById('btn-rotate').addEventListener('click', () => setMode('rotate'));
+document.getElementById('btn-scale').addEventListener('click', () => setMode('scale'));
 
+// Snap
+document.getElementById('btn-snap-toggle').addEventListener('click', function() {
+  snapEnabled = !snapEnabled;
+  this.classList.toggle('active', snapEnabled);
+  transformCtl.setTranslationSnap(snapEnabled ? 0.5 : null);
+  transformCtl.setRotationSnap(snapEnabled ? Math.PI/12 : null);
+  transformCtl.setScaleSnap(snapEnabled ? 0.25 : null);
+  document.getElementById('sb-snap').textContent = snapEnabled ? 'Snap: 0.5' : 'Snap: Off';
+});
+transformCtl.setTranslationSnap(0.5);
+transformCtl.setRotationSnap(Math.PI/12);
+
+// Grid
 document.getElementById('btn-grid-toggle').addEventListener('click', function() {
   grid.visible = !grid.visible;
   this.classList.toggle('active', grid.visible);
 });
-document.getElementById('btn-grid-toggle').classList.add('active');
 
-document.getElementById('btn-snap').addEventListener('click', function() {
-  snapEnabled = !snapEnabled;
-  this.classList.toggle('active', snapEnabled);
-  transform.setTranslationSnap(snapEnabled ? 0.5 : null);
-  transform.setRotationSnap(snapEnabled ? Math.PI / 12 : null);
-  transform.setScaleSnap(snapEnabled ? 0.25 : null);
+// Viewport shading
+document.getElementById('shading-mode').addEventListener('change', function() {
+  shadingMode = this.value;
+  objects.forEach(o => o.traverse(c => {
+    if (!c.isMesh) return;
+    c.material.wireframe = (shadingMode === 'wire');
+    c.material.flatShading = (shadingMode === 'flat');
+    c.material.needsUpdate = true;
+  }));
 });
 
-// ── Keyboard shortcuts ─────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-  switch (e.key.toLowerCase()) {
-    case 'w': setMode('translate'); break;
-    case 'e': setMode('rotate'); break;
-    case 'r': setMode('scale'); break;
-    case 'delete': case 'backspace': deleteSelected(); break;
-    case 'd': if (e.ctrlKey || e.metaKey) { e.preventDefault(); duplicateSelected(); } break;
-    case 'z': if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.shiftKey ? restoreSnapshot(redoStack, undoStack) : restoreSnapshot(undoStack, redoStack); } break;
-    case 'y': if (e.ctrlKey || e.metaKey) { e.preventDefault(); restoreSnapshot(redoStack, undoStack); } break;
-    case 'escape': selectObject(null); break;
-  }
-});
-
-// ── File operations ────────────────────────────────────
-const DB_NAME = 'free3dstore';
-const DB_VER = 1;
-const STORE = 'files';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const r = indexedDB.open(DB_NAME, DB_VER);
-    r.onupgradeneeded = () => {
-      if (!r.result.objectStoreNames.contains(STORE)) {
-        const s = r.result.createObjectStore(STORE, { keyPath: 'id' });
-        s.createIndex('accessedAt', 'accessedAt');
-      }
-    };
-    r.onsuccess = () => resolve(r.result);
-    r.onerror = () => reject(r.error);
+// ── Tab switching ─────────────────────────────────────
+document.querySelectorAll('[data-ltab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-ltab]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('left-scene').style.display = tab.dataset.ltab === 'scene' ? '' : 'none';
+    document.getElementById('left-recent').style.display = tab.dataset.ltab === 'recent' ? '' : 'none';
   });
-}
+});
+document.querySelectorAll('[data-rtab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('[data-rtab]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    ['rt-create','rt-modify','rt-material'].forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('rt-' + tab.dataset.rtab).style.display = '';
+  });
+});
 
-function idbReq(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+// Collapsible sections
+document.querySelectorAll('.p-header').forEach(h => {
+  h.addEventListener('click', () => {
+    h.classList.toggle('collapsed');
+    const body = h.nextElementSibling;
+    if (body) body.classList.toggle('hidden');
+  });
+});
 
-// Save to disk (File System Access API or fallback)
+// ── Keyboard shortcuts ────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  const k = e.key.toLowerCase();
+  if (k === 'q') setMode(null);
+  else if (k === 'w') setMode('translate');
+  else if (k === 'e') setMode('rotate');
+  else if (k === 'r') setMode('scale');
+  else if (k === 'delete' || k === 'backspace') deleteSelected();
+  else if (k === 'g') { grid.visible = !grid.visible; document.getElementById('btn-grid-toggle').classList.toggle('active', grid.visible); }
+  else if (k === 's' && !e.ctrlKey && !e.metaKey) { snapEnabled = !snapEnabled; document.getElementById('btn-snap-toggle').classList.toggle('active', snapEnabled); transformCtl.setTranslationSnap(snapEnabled?0.5:null); transformCtl.setRotationSnap(snapEnabled?Math.PI/12:null); document.getElementById('sb-snap').textContent = snapEnabled?'Snap: 0.5':'Snap: Off'; }
+  else if (k === 'z' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); e.shiftKey ? restore(redoStack,undoStack) : restore(undoStack,redoStack); }
+  else if (k === 'y' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); restore(redoStack,undoStack); }
+  else if (k === 'd' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); cloneSelected(); }
+  else if (k === 'escape') selectObject(null);
+  else if (k === 'f' && selected) { orbit.target.copy(selected.position); }
+});
+
+// ── File I/O ──────────────────────────────────────────
+const DB_NAME='free3dstore', DB_VER=1, STORE='files';
+function openDB() { return new Promise((res,rej) => { const r=indexedDB.open(DB_NAME,DB_VER); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains(STORE)){ const s=r.result.createObjectStore(STORE,{keyPath:'id'}); s.createIndex('accessedAt','accessedAt'); }}; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function idbReq(r) { return new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+
 document.getElementById('btn-save').addEventListener('click', async () => {
-  const exporter = new GLTFExporter();
-  const exportObjects = objects.filter(o => o.isMesh || o.isGroup);
-  if (!exportObjects.length) { status('Nothing to save'); return; }
-
+  const exportObjs = objects.filter(o => o.isMesh || o.isGroup);
+  if (!exportObjs.length) { showStatus('Nothing to save'); return; }
   const group = new THREE.Group();
-  exportObjects.forEach(o => group.add(o.clone()));
-  const result = await exporter.parseAsync(group, { binary: true });
+  exportObjs.forEach(o => group.add(o.clone()));
+  const result = await new GLTFExporter().parseAsync(group, { binary: true });
   const blob = new Blob([result], { type: 'model/gltf-binary' });
-
   if ('showSaveFilePicker' in window) {
-    try {
-      const handle = await window.showSaveFilePicker({
-        suggestedName: 'scene.glb',
-        types: [{ description: 'GLB File', accept: { 'model/gltf-binary': ['.glb'] } }],
-      });
-      const w = await handle.createWritable();
-      await w.write(blob);
-      await w.close();
-      status(`Saved to ${handle.name}`);
-    } catch (e) { if (e.name !== 'AbortError') status('Save failed'); }
-  } else {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'scene.glb'; a.click();
-    URL.revokeObjectURL(url);
-    status('Downloaded scene.glb');
-  }
+    try { const h = await window.showSaveFilePicker({ suggestedName:'scene.glb', types:[{description:'GLB',accept:{'model/gltf-binary':['.glb']}}] }); const w = await h.createWritable(); await w.write(blob); await w.close(); showStatus(`Saved ${h.name}`); }
+    catch(e) { if (e.name!=='AbortError') showStatus('Save cancelled'); }
+  } else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.glb'; a.click(); showStatus('Downloaded scene.glb'); }
 });
 
-// Save to browser (IndexedDB)
-document.getElementById('btn-save-browser').addEventListener('click', async () => {
-  const exporter = new GLTFExporter();
-  const exportObjects = objects.filter(o => o.isMesh || o.isGroup);
-  if (!exportObjects.length) { status('Nothing to save'); return; }
-
-  const group = new THREE.Group();
-  exportObjects.forEach(o => group.add(o.clone()));
-  const result = await exporter.parseAsync(group, { binary: true });
-
-  // Capture thumbnail
-  renderer.render(scene, camera);
-  const thumb = document.createElement('canvas');
-  thumb.width = 128; thumb.height = 128;
-  thumb.getContext('2d').drawImage(canvas, 0, 0, 128, 128);
-
-  const now = Date.now();
-  const name = `scene-${new Date().toISOString().slice(0,16).replace('T','-').replace(':','')}.glb`;
-  const entry = {
-    id: `${now}-${name}`,
-    name,
-    size: result.byteLength,
-    format: 'glb',
-    data: result,
-    thumbnail: thumb.toDataURL('image/webp', 0.7),
-    createdAt: now,
-    accessedAt: now,
-  };
-
+document.getElementById('btn-save-local').addEventListener('click', async () => {
+  const exportObjs = objects.filter(o => o.isMesh || o.isGroup);
+  if (!exportObjs.length) { showStatus('Nothing to save'); return; }
+  const group = new THREE.Group(); exportObjs.forEach(o => group.add(o.clone()));
+  const result = await new GLTFExporter().parseAsync(group, { binary:true });
+  renderer.render(scene,camera);
+  const thumb = document.createElement('canvas'); thumb.width=128; thumb.height=128; thumb.getContext('2d').drawImage(canvas,0,0,128,128);
+  const now=Date.now(), name=`scene-${new Date().toISOString().slice(0,16).replace('T','-').replace(':','')}.glb`;
   const db = await openDB();
-  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put(entry));
-  db.close();
-  status(`Saved to browser: ${name}`);
-  loadRecentFiles();
+  await idbReq(db.transaction(STORE,'readwrite').objectStore(STORE).put({ id:`${now}-${name}`, name, size:result.byteLength, format:'glb', data:result, thumbnail:thumb.toDataURL('image/webp',0.7), createdAt:now, accessedAt:now }));
+  db.close(); showStatus(`Saved locally: ${name}`); loadRecent();
 });
 
-// Open from disk
 document.getElementById('btn-open').addEventListener('click', async () => {
   if ('showOpenFilePicker' in window) {
-    try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: '3D Models', accept: { 'model/*': ['.glb', '.gltf', '.obj', '.stl'] } }],
-      });
-      const file = await handle.getFile();
-      await importModelFile(file);
-    } catch (e) { if (e.name !== 'AbortError') status('Open failed'); }
+    try { const [h] = await window.showOpenFilePicker({ types:[{description:'3D Models',accept:{'model/*':['.glb','.gltf','.obj','.stl']}}] }); await importModelFile(await h.getFile()); }
+    catch(e) { if (e.name!=='AbortError') showStatus('Open cancelled'); }
   } else {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.glb,.gltf,.obj,.stl';
-    input.onchange = () => { if (input.files[0]) importModelFile(input.files[0]); };
-    input.click();
+    const input=document.createElement('input'); input.type='file'; input.accept='.glb,.gltf,.obj,.stl';
+    input.onchange=()=>{ if(input.files[0]) importModelFile(input.files[0]); }; input.click();
   }
 });
-
-function importFile() {
-  document.getElementById('btn-open').click();
-}
 
 async function importModelFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
+  const ext=file.name.split('.').pop().toLowerCase(), url=URL.createObjectURL(file);
   try {
     let obj;
-    if (ext === 'glb' || ext === 'gltf') {
-      const gltf = await new GLTFLoader().loadAsync(url);
-      obj = gltf.scene;
-    } else if (ext === 'obj') {
-      obj = await new OBJLoader().loadAsync(url);
-    } else if (ext === 'stl') {
-      const geo = await new STLLoader().loadAsync(url);
-      obj = new THREE.Mesh(geo, makeMat(0x808080));
-    } else {
-      status('Unsupported format');
-      return;
-    }
-
-    // Center and scale
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    if (maxDim > 0) {
-      const s = 2 / maxDim;
-      obj.position.sub(center);
-      obj.scale.multiplyScalar(s);
-    }
-    addObject(obj, file.name.replace(/\.[^.]+$/, ''));
-
-    // Save to IndexedDB for recent files
-    const now = Date.now();
-    const db = await openDB();
-    renderer.render(scene, camera);
-    const thumb = document.createElement('canvas');
-    thumb.width = 128; thumb.height = 128;
-    thumb.getContext('2d').drawImage(canvas, 0, 0, 128, 128);
-    await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
-      id: `${now}-${file.name}`,
-      name: file.name,
-      size: file.size,
-      format: ext,
-      data: await file.arrayBuffer(),
-      thumbnail: thumb.toDataURL('image/webp', 0.7),
-      createdAt: now,
-      accessedAt: now,
-    }));
-    db.close();
-    loadRecentFiles();
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+    if (ext==='glb'||ext==='gltf') { obj=(await new GLTFLoader().loadAsync(url)).scene; }
+    else if (ext==='obj') { obj=await new OBJLoader().loadAsync(url); }
+    else if (ext==='stl') { obj=new THREE.Mesh(await new STLLoader().loadAsync(url), makeMat(0x808080)); }
+    else { showStatus('Unsupported format'); return; }
+    const box=new THREE.Box3().setFromObject(obj), center=box.getCenter(new THREE.Vector3()), size=box.getSize(new THREE.Vector3());
+    const maxDim=Math.max(size.x,size.y,size.z); if(maxDim>0){ obj.position.sub(center); obj.scale.multiplyScalar(2/maxDim); }
+    addObject(obj, file.name.replace(/\.[^.]+$/,''));
+    // Save to recent
+    const now=Date.now(), db=await openDB();
+    renderer.render(scene,camera); const thumb=document.createElement('canvas'); thumb.width=128; thumb.height=128; thumb.getContext('2d').drawImage(canvas,0,0,128,128);
+    await idbReq(db.transaction(STORE,'readwrite').objectStore(STORE).put({ id:`${now}-${file.name}`, name:file.name, size:file.size, format:ext, data:await file.arrayBuffer(), thumbnail:thumb.toDataURL('image/webp',0.7), createdAt:now, accessedAt:now }));
+    db.close(); loadRecent();
+  } finally { URL.revokeObjectURL(url); }
 }
 
-// New scene
 document.getElementById('btn-new').addEventListener('click', () => {
   if (objects.length && !confirm('Clear scene? Unsaved changes will be lost.')) return;
-  while (objects.length) {
-    const obj = objects.pop();
-    scene.remove(obj);
-    if (obj.userData.helper) scene.remove(obj.userData.helper);
-  }
-  transform.detach();
-  selected = null;
-  nameCounter = 0;
-  undoStack.length = 0;
-  redoStack.length = 0;
-  updateProps();
-  refreshHierarchy();
-  status('New scene');
+  while (objects.length) { const o=objects.pop(); scene.remove(o); if(o.userData.helper) scene.remove(o.userData.helper); }
+  selectObject(null); Object.keys(counters).forEach(k=>counters[k]=0); undoStack.length=0; redoStack.length=0; refreshList(); showStatus('New scene');
 });
 
-// Undo/Redo buttons
-document.getElementById('btn-undo').addEventListener('click', () => restoreSnapshot(undoStack, redoStack));
-document.getElementById('btn-redo').addEventListener('click', () => restoreSnapshot(redoStack, undoStack));
+document.getElementById('btn-undo').addEventListener('click', () => restore(undoStack, redoStack));
+document.getElementById('btn-redo').addEventListener('click', () => restore(redoStack, undoStack));
 
-// ── Recent files ───────────────────────────────────────
+// ── Recent files ──────────────────────────────────────
 const recentList = document.getElementById('recent-list');
-
-async function loadRecentFiles() {
+async function loadRecent() {
   try {
-    const db = await openDB();
-    const store = db.transaction(STORE, 'readonly').objectStore(STORE);
-    const index = store.index('accessedAt');
-    const items = [];
-
-    await new Promise((resolve, reject) => {
-      const cursor = index.openCursor(null, 'prev');
-      cursor.onsuccess = () => {
-        const c = cursor.result;
-        if (c && items.length < 10) {
-          const { data, ...meta } = c.value;
-          items.push(meta);
-          c.continue();
-        } else { resolve(); }
-      };
-      cursor.onerror = () => reject(cursor.error);
-    });
+    const db=await openDB(), store=db.transaction(STORE,'readonly').objectStore(STORE), index=store.index('accessedAt'), items=[];
+    await new Promise((res,rej) => { const c=index.openCursor(null,'prev'); c.onsuccess=()=>{ const r=c.result; if(r&&items.length<12){const{data,...meta}=r.value;items.push(meta);r.continue();}else res(); }; c.onerror=()=>rej(c.error); });
     db.close();
-
-    if (!items.length) {
-      recentList.innerHTML = '<div class="empty">No recent files</div>';
-      return;
-    }
-
-    recentList.innerHTML = '';
+    if (!items.length) { recentList.innerHTML='<div class="empty-msg">No recent files</div>'; return; }
+    recentList.innerHTML='';
     for (const item of items) {
-      const div = document.createElement('div');
-      div.className = 'recent-item';
-      const ago = timeAgo(item.accessedAt);
-      const sizeStr = item.size > 1024 * 1024 ? (item.size / 1024 / 1024).toFixed(1) + ' MB' : (item.size / 1024).toFixed(0) + ' KB';
-      div.innerHTML = `
-        ${item.thumbnail ? `<img class="recent-thumb" src="${item.thumbnail}">` : '<div class="recent-thumb"></div>'}
-        <div class="recent-meta">
-          <div class="recent-name">${item.name}</div>
-          <div class="recent-info">${sizeStr} · ${item.format.toUpperCase()} · ${ago}</div>
-        </div>
-        <button class="recent-del" title="Remove">✕</button>
-      `;
-      div.querySelector('.recent-meta').addEventListener('click', () => loadRecent(item.id));
-      div.querySelector('.recent-del').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const db2 = await openDB();
-        await idbReq(db2.transaction(STORE, 'readwrite').objectStore(STORE).delete(item.id));
-        db2.close();
-        loadRecentFiles();
+      const div=document.createElement('div'); div.className='recent-item';
+      const sizeStr = item.size>1048576 ? (item.size/1048576).toFixed(1)+'MB' : (item.size/1024).toFixed(0)+'KB';
+      div.innerHTML=`${item.thumbnail?`<img class="recent-thumb" src="${item.thumbnail}">`:'<div class="recent-thumb"></div>'}<div class="recent-meta"><div class="recent-name">${item.name}</div><div class="recent-info">${sizeStr} · ${item.format.toUpperCase()}</div></div><button class="recent-del" title="Remove">×</button>`;
+      div.querySelector('.recent-meta').addEventListener('click', async ()=>{
+        const db2=await openDB(); const entry=await idbReq(db2.transaction(STORE,'readonly').objectStore(STORE).get(item.id)); db2.close();
+        if(entry){ entry.accessedAt=Date.now(); const db3=await openDB(); await idbReq(db3.transaction(STORE,'readwrite').objectStore(STORE).put(entry)); db3.close();
+        await importModelFile(new File([entry.data],entry.name)); loadRecent(); }
       });
+      div.querySelector('.recent-del').addEventListener('click', async e=>{ e.stopPropagation(); const db2=await openDB(); await idbReq(db2.transaction(STORE,'readwrite').objectStore(STORE).delete(item.id)); db2.close(); loadRecent(); });
       recentList.appendChild(div);
     }
-  } catch { recentList.innerHTML = '<div class="empty">No recent files</div>'; }
+  } catch { recentList.innerHTML='<div class="empty-msg">No recent files</div>'; }
 }
 
-async function loadRecent(id) {
-  const db = await openDB();
-  const entry = await idbReq(db.transaction(STORE, 'readonly').objectStore(STORE).get(id));
-  db.close();
-  if (!entry) return;
-
-  // Update access time
-  entry.accessedAt = Date.now();
-  const db2 = await openDB();
-  await idbReq(db2.transaction(STORE, 'readwrite').objectStore(STORE).put(entry));
-  db2.close();
-
-  const file = new File([entry.data], entry.name, { type: 'model/gltf-binary' });
-  await importModelFile(file);
-  loadRecentFiles();
-}
-
-function timeAgo(ts) {
-  const diff = Date.now() - ts;
-  if (diff < 60000) return 'just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  return `${Math.floor(diff / 86400000)}d ago`;
-}
-
-function status(msg) {
-  document.getElementById('status').textContent = msg;
-  setTimeout(() => { document.getElementById('status').textContent = 'Ready'; }, 3000);
-}
-
-// ── Drag and drop on viewport ──────────────────────────
+// Drag and drop
 canvas.addEventListener('dragover', e => e.preventDefault());
-canvas.addEventListener('drop', e => {
-  e.preventDefault();
-  if (e.dataTransfer.files[0]) importModelFile(e.dataTransfer.files[0]);
-});
+canvas.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) importModelFile(e.dataTransfer.files[0]); });
 
-// ── Init ───────────────────────────────────────────────
-refreshHierarchy();
-loadRecentFiles();
+function showStatus(msg) { document.getElementById('status-msg').textContent=msg; setTimeout(()=>{document.getElementById('status-msg').textContent='Ready';},3000); }
+
+// ── Init ──────────────────────────────────────────────
+refreshList();
+loadRecent();
+updateUI();
 </script>
 </body>
 </html>
