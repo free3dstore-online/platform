@@ -4,125 +4,344 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mesh Optimizer - Free3DStore</title>
-<meta name="description" content="Polygon reduction and mesh simplification. Upload a model, merge vertices, recompute normals, compare stats.">
+<meta name="description" content="Reduce polygon count on 3D models. Merge vertices, simplify meshes. Before/after comparison with stats.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
 a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
 .back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
-.container{max-width:900px;margin:0 auto;padding:0 24px 24px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-.subtitle{color:#6b7280;margin-bottom:24px;font-size:15px;line-height:1.6}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
-.panel h2{font-size:16px;font-weight:700;margin-bottom:16px}
-.viewport{width:100%;height:400px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-container{width:100%;height:100%}
-.drop-zone{display:flex;flex-direction:column;align-items:center;gap:12px;color:#6b7280;cursor:pointer}
-.drop-zone h3{font-size:18px;font-weight:700;color:#1a1a1a}
-.drop-zone p{font-size:14px}
-.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
+.container{max-width:1100px;margin:0 auto;padding:0 24px 40px}
+h1{font-size:28px;font-weight:800;margin-bottom:6px}
+.subtitle{color:#6b7280;margin-bottom:20px;font-size:14px}
+.drop-area{border:2px dashed #d1d5db;border-radius:16px;padding:48px;text-align:center;cursor:pointer;transition:all .2s;background:#fff;margin-bottom:20px}
+.drop-area:hover{border-color:#06b6d4;background:rgba(6,182,212,.03)}
+.drop-area h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.drop-area p{color:#6b7280;font-size:14px;margin-bottom:16px}
+.btn{padding:10px 20px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font:inherit;font-size:14px;font-weight:600;color:#374151;transition:all .15s}
 .btn:hover{border-color:#06b6d4;color:#06b6d4}
 .btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
 .btn-primary:hover{background:#0891b2}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
 input[type="file"]{display:none}
+.workspace{display:none}
+.workspace.active{display:block}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:768px){.compare{grid-template-columns:1fr}}
+.view-panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+.view-header{padding:10px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:700}
+.view-header .tag{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+.tag-original{background:#e5e7eb;color:#6b7280}
+.tag-optimized{background:#d1fae5;color:#059669}
+.view-canvas{width:100%;height:300px;position:relative}
+.view-canvas canvas{width:100%;height:100%;display:block}
+.stats-row{display:flex;padding:8px 16px;gap:16px;font-size:12px;color:#6b7280;border-top:1px solid #f3f4f6}
+.stats-row .stat-val{font-weight:700;color:#1a1a1a}
+.stats-row .stat-val.green{color:#059669}
+.stats-row .stat-val.red{color:#ef4444}
+.controls{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:20px}
+.controls h2{font-size:16px;font-weight:700;margin-bottom:12px}
+.slider-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.slider-row label{font-size:13px;font-weight:600;width:120px;flex-shrink:0}
+.slider-row input[type="range"]{flex:1;accent-color:#06b6d4}
+.slider-row .val{font-size:14px;font-weight:700;width:50px;text-align:right;color:#06b6d4}
+.check-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px}
+.check-row input{accent-color:#06b6d4}
+.actions{display:flex;gap:8px;margin-top:16px}
+.result-banner{padding:14px 20px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:14px}
+.result-banner.success{background:#ecfdf5;border:1px solid #a7f3d0}
+.result-banner .big{font-size:22px;font-weight:800}
+.result-banner .big.green{color:#059669}
 </style>
 </head>
 <body>
 <a class="back" href="/">← Free3DStore</a>
 <div class="container">
-<h1>⚡ Mesh Optimizer</h1>
-<p class="subtitle">Polygon reduction and mesh simplification. Upload a model, merge vertices, recompute normals, compare stats.</p>
+<h1>Mesh Optimizer</h1>
+<p class="subtitle">Reduce polygon count, merge vertices, recompute normals. Compare before and after.</p>
 
-<div class="viewport" id="viewport">
-  <div class="drop-zone" id="drop-zone">
-    <h3>Drop a 3D model here</h3>
-    <p>Supports GLB, OBJ, STL, FBX</p>
-    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
-    <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
-  </div>
+<div class="drop-area" id="drop-area">
+  <h2>Drop a 3D model here</h2>
+  <p>Supports GLB, GLTF, OBJ, STL, FBX</p>
+  <button class="btn btn-primary" id="browse-btn">Choose File</button>
+  <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
 </div>
 
-<div class="panel">
-  <h2>How it works</h2>
-  <p style="color:#6b7280;font-size:14px;line-height:1.7">
-    Drop or browse a 3D model file to get started. Polygon reduction and mesh simplification. Upload a model, merge vertices, recompute normals, compare stats.
-    Everything runs in your browser using Three.js — your files never leave your device.
-  </p>
+<div class="workspace" id="workspace">
+  <div id="result-area"></div>
+  <div class="compare">
+    <div class="view-panel">
+      <div class="view-header"><span>Original</span><span class="tag tag-original">Before</span></div>
+      <div class="view-canvas" id="view-orig"></div>
+      <div class="stats-row">
+        <span>Verts: <span class="stat-val" id="orig-verts">0</span></span>
+        <span>Faces: <span class="stat-val" id="orig-faces">0</span></span>
+        <span>Size: <span class="stat-val" id="orig-size">0</span></span>
+      </div>
+    </div>
+    <div class="view-panel">
+      <div class="view-header"><span>Optimized</span><span class="tag tag-optimized">After</span></div>
+      <div class="view-canvas" id="view-opt"></div>
+      <div class="stats-row">
+        <span>Verts: <span class="stat-val green" id="opt-verts">0</span></span>
+        <span>Faces: <span class="stat-val green" id="opt-faces">0</span></span>
+        <span>Reduction: <span class="stat-val green" id="opt-reduction">0%</span></span>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <h2>Optimization Settings</h2>
+    <div class="slider-row">
+      <label>Target Quality</label>
+      <input type="range" id="quality" min="5" max="100" step="5" value="50">
+      <span class="val" id="quality-val">50%</span>
+    </div>
+    <div class="check-row"><input type="checkbox" id="merge-verts" checked><label for="merge-verts">Merge duplicate vertices</label></div>
+    <div class="check-row"><input type="checkbox" id="recompute-normals" checked><label for="recompute-normals">Recompute normals</label></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="optimize-btn">Optimize</button>
+      <button class="btn" id="download-btn" disabled>Download Optimized GLB</button>
+      <button class="btn" id="reset-btn">New File</button>
+    </div>
+  </div>
 </div>
 </div>
 
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-const viewport = document.getElementById('viewport');
-const dropZone = document.getElementById('drop-zone');
-let scene, camera, renderer, controls;
+let origObject = null, optObject = null, origFileSize = 0;
+const viewers = {};
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
-  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
-  camera.position.set(2, 2, 2);
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5, 5, 5);
-  scene.add(dir);
-  scene.add(new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0));
-  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-  animate();
-  window.addEventListener('resize', () => {
-    camera.aspect = viewport.clientWidth / viewport.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+function createViewer(container) {
+  const s = new THREE.Scene(); s.background = new THREE.Color(0xf0f0f0);
+  const c = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.01, 100);
+  c.position.set(2, 1.5, 2);
+  const r = new THREE.WebGLRenderer({ antialias: true });
+  r.setSize(container.clientWidth, container.clientHeight); r.setPixelRatio(Math.min(devicePixelRatio, 2));
+  r.toneMapping = THREE.ACESFilmicToneMapping;
+  container.appendChild(r.domElement);
+  const ctrl = new OrbitControls(c, r.domElement); ctrl.enableDamping = true;
+  s.add(new THREE.AmbientLight(0xffffff, 0.5));
+  const d = new THREE.DirectionalLight(0xffffff, 1); d.position.set(4, 6, 4); s.add(d);
+  s.add(new THREE.GridHelper(6, 6, 0xccc, 0xddd));
+  return { scene: s, camera: c, renderer: r, controls: ctrl };
+}
+
+function animateAll() {
+  requestAnimationFrame(animateAll);
+  for (const v of Object.values(viewers)) { v.controls.update(); v.renderer.render(v.scene, v.camera); }
+}
+
+function syncCameras() {
+  // Sync optimized camera to match original
+  const o = viewers.orig, p = viewers.opt;
+  if (!o || !p) return;
+  p.camera.position.copy(o.camera.position);
+  p.camera.rotation.copy(o.camera.rotation);
+  p.controls.target.copy(o.controls.target);
+  p.controls.update();
+  o.controls.addEventListener('change', () => {
+    p.camera.position.copy(o.camera.position);
+    p.camera.rotation.copy(o.camera.rotation);
+    p.controls.target.copy(o.controls.target);
   });
 }
 
+function countGeo(obj) {
+  let v = 0, f = 0;
+  obj.traverse(c => { if (c.isMesh && c.geometry) { v += c.geometry.attributes.position?.count || 0; f += c.geometry.index ? c.geometry.index.count / 3 : (c.geometry.attributes.position?.count || 0) / 3; } });
+  return { v, f: Math.floor(f) };
+}
+
+function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(2) + ' MB' : (b / 1024).toFixed(1) + ' KB'; }
+
+function centerAndScale(obj) {
+  const box = new THREE.Box3().setFromObject(obj), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  if (maxDim > 0) { obj.position.sub(center); obj.scale.multiplyScalar(2 / maxDim); }
+}
+
 async function loadFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
+  const ext = file.name.split('.').pop().toLowerCase(), url = URL.createObjectURL(file);
+  origFileSize = file.size;
   try {
     let obj;
-    if (ext === 'glb' || ext === 'gltf') { const g = await new GLTFLoader().loadAsync(url); obj = g.scene; }
-    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
-    else if (ext === 'stl') { const geo = await new STLLoader().loadAsync(url); obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x808080})); }
+    if (ext === 'glb' || ext === 'gltf') obj = (await new GLTFLoader().loadAsync(url)).scene;
+    else if (ext === 'obj') obj = await new OBJLoader().loadAsync(url);
+    else if (ext === 'stl') obj = new THREE.Mesh(await new STLLoader().loadAsync(url), new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.5 }));
+    else if (ext === 'fbx') obj = await new FBXLoader().loadAsync(url);
     else { alert('Unsupported: ' + ext); return; }
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const s = Math.max(size.x, size.y, size.z);
-    const scale = s > 0 ? 2 / s : 1;
-    obj.position.sub(center);
-    obj.scale.multiplyScalar(scale);
-    scene.add(obj);
-    dropZone.style.display = 'none';
-    viewport.appendChild(renderer.domElement);
+
+    centerAndScale(obj);
+    origObject = obj;
+
+    // Initialize viewers
+    if (!viewers.orig) {
+      viewers.orig = createViewer(document.getElementById('view-orig'));
+      viewers.opt = createViewer(document.getElementById('view-opt'));
+      animateAll();
+      syncCameras();
+    }
+
+    // Clear previous
+    viewers.orig.scene.children.filter(c => c.userData._model).forEach(c => viewers.orig.scene.remove(c));
+    viewers.opt.scene.children.filter(c => c.userData._model).forEach(c => viewers.opt.scene.remove(c));
+
+    obj.userData._model = true;
+    viewers.orig.scene.add(obj);
+
+    const stats = countGeo(obj);
+    document.getElementById('orig-verts').textContent = stats.v.toLocaleString();
+    document.getElementById('orig-faces').textContent = stats.f.toLocaleString();
+    document.getElementById('orig-size').textContent = fmtSize(origFileSize);
+    document.getElementById('opt-verts').textContent = '—';
+    document.getElementById('opt-faces').textContent = '—';
+    document.getElementById('opt-reduction').textContent = '—';
+
+    document.getElementById('drop-area').style.display = 'none';
+    document.getElementById('workspace').classList.add('active');
+    document.getElementById('result-area').innerHTML = '';
+    document.getElementById('download-btn').disabled = true;
+    optObject = null;
   } finally { URL.revokeObjectURL(url); }
 }
 
+// Optimization: merge vertices + decimation via uniform sampling
+function optimizeMesh(obj, quality, mergeVerts, recomputeNormals) {
+  const clone = obj.clone(true);
+  const targetRatio = quality / 100;
+
+  clone.traverse(child => {
+    if (!child.isMesh || !child.geometry) return;
+    let geo = child.geometry.clone();
+
+    // Merge duplicate vertices
+    if (mergeVerts) {
+      const pos = geo.attributes.position;
+      const map = new Map();
+      const indices = [];
+      const newPos = [];
+
+      for (let i = 0; i < pos.count; i++) {
+        const x = Math.round(pos.getX(i) * 1e4) / 1e4;
+        const y = Math.round(pos.getY(i) * 1e4) / 1e4;
+        const z = Math.round(pos.getZ(i) * 1e4) / 1e4;
+        const key = `${x},${y},${z}`;
+        if (map.has(key)) {
+          indices.push(map.get(key));
+        } else {
+          const idx = newPos.length / 3;
+          map.set(key, idx);
+          newPos.push(x, y, z);
+          indices.push(idx);
+        }
+      }
+      geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(newPos, 3));
+      geo.setIndex(indices);
+    }
+
+    // Simple decimation: keep every Nth face
+    if (targetRatio < 1 && geo.index) {
+      const idx = geo.index.array;
+      const totalFaces = idx.length / 3;
+      const targetFaces = Math.max(4, Math.floor(totalFaces * targetRatio));
+      const step = Math.max(1, Math.floor(totalFaces / targetFaces));
+      const newIdx = [];
+      for (let i = 0; i < totalFaces; i += step) {
+        newIdx.push(idx[i * 3], idx[i * 3 + 1], idx[i * 3 + 2]);
+      }
+      geo.setIndex(newIdx);
+    } else if (targetRatio < 1 && !geo.index) {
+      const pos = geo.attributes.position;
+      const totalVerts = pos.count;
+      const totalFaces = totalVerts / 3;
+      const targetFaces = Math.max(4, Math.floor(totalFaces * targetRatio));
+      const step = Math.max(1, Math.floor(totalFaces / targetFaces));
+      const newPos = [];
+      for (let i = 0; i < totalFaces; i += step) {
+        const base = i * 3;
+        for (let j = 0; j < 3; j++) {
+          newPos.push(pos.getX(base + j), pos.getY(base + j), pos.getZ(base + j));
+        }
+      }
+      geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(newPos, 3));
+    }
+
+    if (recomputeNormals) geo.computeVertexNormals();
+    geo.computeBoundingBox();
+    geo.computeBoundingSphere();
+    child.geometry = geo;
+  });
+
+  return clone;
+}
+
+document.getElementById('optimize-btn').addEventListener('click', () => {
+  if (!origObject) return;
+  const quality = parseInt(document.getElementById('quality').value);
+  const merge = document.getElementById('merge-verts').checked;
+  const normals = document.getElementById('recompute-normals').checked;
+
+  // Clear previous optimized
+  viewers.opt.scene.children.filter(c => c.userData._model).forEach(c => viewers.opt.scene.remove(c));
+
+  optObject = optimizeMesh(origObject, quality, merge, normals);
+  optObject.userData._model = true;
+  viewers.opt.scene.add(optObject);
+
+  const origStats = countGeo(origObject);
+  const optStats = countGeo(optObject);
+  const reduction = origStats.f > 0 ? Math.round((1 - optStats.f / origStats.f) * 100) : 0;
+
+  document.getElementById('opt-verts').textContent = optStats.v.toLocaleString();
+  document.getElementById('opt-faces').textContent = optStats.f.toLocaleString();
+  document.getElementById('opt-reduction').textContent = `-${reduction}%`;
+
+  document.getElementById('result-area').innerHTML = `
+    <div class="result-banner success">
+      <span class="big green">-${reduction}%</span>
+      <span>${origStats.f.toLocaleString()} → ${optStats.f.toLocaleString()} faces &nbsp;|&nbsp; ${origStats.v.toLocaleString()} → ${optStats.v.toLocaleString()} vertices</span>
+    </div>`;
+
+  document.getElementById('download-btn').disabled = false;
+});
+
+document.getElementById('download-btn').addEventListener('click', async () => {
+  if (!optObject) return;
+  const result = await new GLTFExporter().parseAsync(optObject, { binary: true });
+  const blob = new Blob([result], { type: 'model/gltf-binary' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'optimized.glb'; a.click();
+});
+
+document.getElementById('quality').addEventListener('input', function() {
+  document.getElementById('quality-val').textContent = this.value + '%';
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (viewers.orig) viewers.orig.scene.children.filter(c => c.userData._model).forEach(c => viewers.orig.scene.remove(c));
+  if (viewers.opt) viewers.opt.scene.children.filter(c => c.userData._model).forEach(c => viewers.opt.scene.remove(c));
+  origObject = null; optObject = null;
+  document.getElementById('drop-area').style.display = '';
+  document.getElementById('workspace').classList.remove('active');
+});
+
+document.getElementById('browse-btn').addEventListener('click', () => document.getElementById('file-input').click());
 document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
-viewport.addEventListener('dragover', e => e.preventDefault());
-viewport.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-init();
+const da = document.getElementById('drop-area');
+da.addEventListener('dragover', e => { e.preventDefault(); da.style.borderColor = '#06b6d4'; });
+da.addEventListener('dragleave', () => da.style.borderColor = '#d1d5db');
+da.addEventListener('drop', e => { e.preventDefault(); da.style.borderColor = '#d1d5db'; if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
 </script>
 <script src="/related.js" defer></script>
 </body>

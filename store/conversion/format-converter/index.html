@@ -3,126 +3,291 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Format Converter - Free3DStore</title>
-<meta name="description" content="Convert 3D models between GLB, OBJ, STL, FBX, GLTF. Drag-and-drop, preview, download in target format.">
+<title>3D Format Converter - Free3DStore</title>
+<meta name="description" content="Convert 3D models between GLB, GLTF, OBJ, STL. Drag-and-drop, preview, compare file sizes, download.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
 a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
 .back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
-.container{max-width:900px;margin:0 auto;padding:0 24px 24px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-.subtitle{color:#6b7280;margin-bottom:24px;font-size:15px;line-height:1.6}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
-.panel h2{font-size:16px;font-weight:700;margin-bottom:16px}
-.viewport{width:100%;height:400px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-container{width:100%;height:100%}
-.drop-zone{display:flex;flex-direction:column;align-items:center;gap:12px;color:#6b7280;cursor:pointer}
-.drop-zone h3{font-size:18px;font-weight:700;color:#1a1a1a}
-.drop-zone p{font-size:14px}
-.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
+.container{max-width:1000px;margin:0 auto;padding:0 24px 40px}
+h1{font-size:28px;font-weight:800;margin-bottom:6px}
+.subtitle{color:#6b7280;margin-bottom:20px;font-size:14px}
+.drop-area{border:2px dashed #d1d5db;border-radius:16px;padding:48px;text-align:center;cursor:pointer;transition:all .2s;background:#fff;margin-bottom:20px}
+.drop-area:hover,.drop-area.drag{border-color:#06b6d4;background:rgba(6,182,212,.03)}
+.drop-area h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.drop-area p{color:#6b7280;font-size:14px;margin-bottom:16px}
+.btn{padding:10px 20px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:all .15s;color:#374151;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{border-color:#06b6d4;color:#06b6d4}
 .btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
 .btn-primary:hover{background:#0891b2}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-lg{padding:12px 28px;font-size:15px}
 input[type="file"]{display:none}
+.workspace{display:none;gap:20px}
+.workspace.active{display:grid;grid-template-columns:1fr 1fr}
+@media(max-width:768px){.workspace.active{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+.panel-header{padding:12px 16px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between}
+.panel-body{padding:16px}
+.preview-box{width:100%;height:280px;background:#f0f0f0;border-radius:8px;overflow:hidden;position:relative}
+.preview-box canvas{width:100%;height:100%;display:block}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.stat{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px}
+.stat .label{font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.stat .value{font-size:16px;font-weight:700}
+.stat .value.smaller{color:#10b981}
+.stat .value.bigger{color:#ef4444}
+.convert-section{margin-top:20px}
+.format-grid{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+.fmt-btn{padding:8px 18px;border:2px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;transition:all .15s;color:#6b7280}
+.fmt-btn:hover{border-color:#06b6d4;color:#06b6d4}
+.fmt-btn.active{border-color:#06b6d4;background:rgba(6,182,212,.08);color:#06b6d4}
+.fmt-btn.disabled{opacity:.3;cursor:not-allowed}
+.result-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;margin-top:12px}
+.result-bar.warn{background:#fffbeb;border-color:#fde68a}
+.result-bar .icon{font-size:20px}
+.result-bar .info{flex:1}
+.result-bar .info .title{font-weight:700;font-size:14px}
+.result-bar .info .detail{font-size:12px;color:#6b7280}
+.arrow{font-size:24px;color:#06b6d4;display:flex;align-items:center;justify-content:center;font-weight:700}
+@media(max-width:768px){.arrow{transform:rotate(90deg)}}
 </style>
 </head>
 <body>
 <a class="back" href="/">← Free3DStore</a>
 <div class="container">
-<h1>🔄 Format Converter</h1>
-<p class="subtitle">Convert 3D models between GLB, OBJ, STL, FBX, GLTF. Drag-and-drop, preview, download in target format.</p>
+<h1>3D Format Converter</h1>
+<p class="subtitle">Convert between GLB, GLTF (JSON), OBJ, and STL. Drag-and-drop, preview, compare sizes.</p>
 
-<div class="viewport" id="viewport">
-  <div class="drop-zone" id="drop-zone">
-    <h3>Drop a 3D model here</h3>
-    <p>Supports GLB, OBJ, STL, FBX</p>
-    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
-    <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
-  </div>
+<div class="drop-area" id="drop-area">
+  <h2>Drop a 3D model here</h2>
+  <p>Supports GLB, GLTF, OBJ, STL, FBX</p>
+  <button class="btn btn-primary" id="browse-btn">Choose File</button>
+  <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
 </div>
 
-<div class="panel">
-  <h2>How it works</h2>
-  <p style="color:#6b7280;font-size:14px;line-height:1.7">
-    Drop or browse a 3D model file to get started. Convert 3D models between GLB, OBJ, STL, FBX, GLTF. Drag-and-drop, preview, download in target format.
-    Everything runs in your browser using Three.js — your files never leave your device.
-  </p>
+<div class="workspace" id="workspace">
+  <!-- Source -->
+  <div class="panel">
+    <div class="panel-header"><span>Source</span><span id="src-format" style="color:#06b6d4"></span></div>
+    <div class="panel-body">
+      <div class="preview-box" id="src-preview"></div>
+      <div class="stats">
+        <div class="stat"><div class="label">File Size</div><div class="value" id="src-size">—</div></div>
+        <div class="stat"><div class="label">Format</div><div class="value" id="src-ext">—</div></div>
+        <div class="stat"><div class="label">Vertices</div><div class="value" id="src-verts">—</div></div>
+        <div class="stat"><div class="label">Faces</div><div class="value" id="src-faces">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Target -->
+  <div class="panel">
+    <div class="panel-header"><span>Convert To</span><span id="tgt-size-badge" style="font-size:12px"></span></div>
+    <div class="panel-body">
+      <div class="format-grid" id="format-grid">
+        <button class="fmt-btn" data-fmt="glb">GLB</button>
+        <button class="fmt-btn" data-fmt="gltf">GLTF</button>
+        <button class="fmt-btn" data-fmt="obj">OBJ</button>
+        <button class="fmt-btn" data-fmt="stl">STL</button>
+      </div>
+      <div id="result-area"></div>
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button class="btn btn-primary btn-lg" id="convert-btn" disabled>Convert & Download</button>
+        <button class="btn" id="reset-btn">New File</button>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-const viewport = document.getElementById('viewport');
-const dropZone = document.getElementById('drop-zone');
+let loadedObject = null, srcFormat = '', srcSize = 0, targetFormat = '';
 let scene, camera, renderer, controls;
 
-function init() {
+// Preview scene
+function initPreview(container) {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf0f0f0);
-  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
-  camera.position.set(2, 2, 2);
+  camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.01, 100);
+  camera.position.set(2, 1.5, 2);
   renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  container.appendChild(renderer.domElement);
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5, 5, 5);
-  scene.add(dir);
-  scene.add(new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0));
-  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-  animate();
-  window.addEventListener('resize', () => {
-    camera.aspect = viewport.clientWidth / viewport.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  });
+  const d = new THREE.DirectionalLight(0xffffff, 1); d.position.set(4, 6, 4); scene.add(d);
+  scene.add(new THREE.GridHelper(6, 6, 0xccc, 0xddd));
+  (function anim() { requestAnimationFrame(anim); controls.update(); renderer.render(scene, camera); })();
+}
+
+function countGeo(obj) {
+  let v = 0, f = 0;
+  obj.traverse(c => { if (c.isMesh && c.geometry) { v += c.geometry.attributes.position?.count || 0; f += c.geometry.index ? c.geometry.index.count / 3 : (c.geometry.attributes.position?.count || 0) / 3; } });
+  return { v, f: Math.floor(f) };
+}
+
+function fmtSize(bytes) {
+  if (bytes > 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+  return (bytes / 1024).toFixed(1) + ' KB';
 }
 
 async function loadFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
+  srcFormat = ext; srcSize = file.size;
   const url = URL.createObjectURL(file);
+
+  // Remove previous
+  if (loadedObject) { scene.remove(loadedObject); loadedObject = null; }
+
   try {
     let obj;
-    if (ext === 'glb' || ext === 'gltf') { const g = await new GLTFLoader().loadAsync(url); obj = g.scene; }
-    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
-    else if (ext === 'stl') { const geo = await new STLLoader().loadAsync(url); obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x808080})); }
+    if (ext === 'glb' || ext === 'gltf') obj = (await new GLTFLoader().loadAsync(url)).scene;
+    else if (ext === 'obj') obj = await new OBJLoader().loadAsync(url);
+    else if (ext === 'stl') obj = new THREE.Mesh(await new STLLoader().loadAsync(url), new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.5 }));
+    else if (ext === 'fbx') obj = await new FBXLoader().loadAsync(url);
     else { alert('Unsupported: ' + ext); return; }
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const s = Math.max(size.x, size.y, size.z);
-    const scale = s > 0 ? 2 / s : 1;
-    obj.position.sub(center);
-    obj.scale.multiplyScalar(scale);
+
+    // Center and scale
+    const box = new THREE.Box3().setFromObject(obj), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) { obj.position.sub(center); obj.scale.multiplyScalar(2 / maxDim); }
+
     scene.add(obj);
-    dropZone.style.display = 'none';
-    viewport.appendChild(renderer.domElement);
+    loadedObject = obj;
+
+    const stats = countGeo(obj);
+    document.getElementById('src-size').textContent = fmtSize(srcSize);
+    document.getElementById('src-ext').textContent = ext.toUpperCase();
+    document.getElementById('src-verts').textContent = stats.v.toLocaleString();
+    document.getElementById('src-faces').textContent = stats.f.toLocaleString();
+    document.getElementById('src-format').textContent = ext.toUpperCase();
+
+    // Show workspace, hide drop area
+    document.getElementById('drop-area').style.display = 'none';
+    document.getElementById('workspace').classList.add('active');
+
+    // Disable same-format button
+    document.querySelectorAll('.fmt-btn').forEach(b => {
+      const isSame = b.dataset.fmt === ext || (b.dataset.fmt === 'glb' && ext === 'gltf') || (b.dataset.fmt === 'gltf' && ext === 'glb');
+      b.classList.toggle('disabled', isSame);
+      b.disabled = isSame;
+    });
+    targetFormat = '';
+    document.getElementById('convert-btn').disabled = true;
+    document.getElementById('result-area').innerHTML = '';
   } finally { URL.revokeObjectURL(url); }
 }
 
+// Format selection
+document.querySelectorAll('.fmt-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.disabled) return;
+    document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    targetFormat = btn.dataset.fmt;
+    document.getElementById('convert-btn').disabled = false;
+  });
+});
+
+// Convert
+document.getElementById('convert-btn').addEventListener('click', async () => {
+  if (!loadedObject || !targetFormat) return;
+  const btn = document.getElementById('convert-btn');
+  btn.disabled = true; btn.textContent = 'Converting...';
+
+  try {
+    let blob, mime, ext;
+    switch (targetFormat) {
+      case 'glb': {
+        const result = await new GLTFExporter().parseAsync(loadedObject, { binary: true });
+        blob = new Blob([result], { type: 'model/gltf-binary' }); mime = 'model/gltf-binary'; ext = 'glb';
+        break;
+      }
+      case 'gltf': {
+        const result = await new GLTFExporter().parseAsync(loadedObject, { binary: false });
+        blob = new Blob([JSON.stringify(result, null, 2)], { type: 'model/gltf+json' }); mime = 'model/gltf+json'; ext = 'gltf';
+        break;
+      }
+      case 'obj': {
+        const result = new OBJExporter().parse(loadedObject);
+        blob = new Blob([result], { type: 'text/plain' }); mime = 'text/plain'; ext = 'obj';
+        break;
+      }
+      case 'stl': {
+        const result = new STLExporter().parse(loadedObject, { binary: true });
+        blob = new Blob([result], { type: 'model/stl' }); mime = 'model/stl'; ext = 'stl';
+        break;
+      }
+    }
+
+    const newSize = blob.size;
+    const ratio = ((newSize / srcSize) * 100).toFixed(0);
+    const smaller = newSize < srcSize;
+    const diff = smaller ? `-${fmtSize(srcSize - newSize)}` : `+${fmtSize(newSize - srcSize)}`;
+
+    document.getElementById('result-area').innerHTML = `
+      <div class="result-bar ${smaller ? '' : 'warn'}">
+        <span class="icon">${smaller ? '✅' : '⚠️'}</span>
+        <div class="info">
+          <div class="title">${fmtSize(srcSize)} → ${fmtSize(newSize)} (${ratio}%)</div>
+          <div class="detail">${diff} · ${srcFormat.toUpperCase()} → ${ext.toUpperCase()}</div>
+        </div>
+      </div>
+    `;
+    document.getElementById('tgt-size-badge').textContent = fmtSize(newSize);
+    document.getElementById('tgt-size-badge').style.color = smaller ? '#10b981' : '#f59e0b';
+
+    // Download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `converted.${ext}`; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    document.getElementById('result-area').innerHTML = `<div class="result-bar warn"><span class="icon">❌</span><div class="info"><div class="title">Conversion failed</div><div class="detail">${e.message}</div></div></div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Convert & Download';
+});
+
+// Reset
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (loadedObject) { scene.remove(loadedObject); loadedObject = null; }
+  document.getElementById('drop-area').style.display = '';
+  document.getElementById('workspace').classList.remove('active');
+  document.querySelectorAll('.fmt-btn').forEach(b => { b.classList.remove('active', 'disabled'); b.disabled = false; });
+  targetFormat = '';
+});
+
+// File input
+document.getElementById('browse-btn').addEventListener('click', () => document.getElementById('file-input').click());
 document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
-viewport.addEventListener('dragover', e => e.preventDefault());
-viewport.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-init();
+
+// Drag and drop
+const dropArea = document.getElementById('drop-area');
+dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag'); });
+dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag'));
+dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('drag'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+
+// Init preview
+initPreview(document.getElementById('src-preview'));
 </script>
 <script src="/related.js" defer></script>
 </body>

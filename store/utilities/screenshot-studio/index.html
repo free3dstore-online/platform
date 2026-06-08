@@ -4,62 +4,123 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Screenshot Studio - Free3DStore</title>
-<meta name="description" content="Professional product shots with lighting presets. Transparent or solid backgrounds. Export up to 4K resolution.">
+<meta name="description" content="Professional 3D product shots. Load a model, choose lighting presets, backgrounds, camera angles. Export up to 4K PNG with transparent background.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
-a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
-.back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
-.container{max-width:900px;margin:0 auto;padding:0 24px 24px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-.subtitle{color:#6b7280;margin-bottom:24px;font-size:15px;line-height:1.6}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
-.panel h2{font-size:16px;font-weight:700;margin-bottom:16px}
-.viewport{width:100%;height:400px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-container{width:100%;height:100%}
-.drop-zone{display:flex;flex-direction:column;align-items:center;gap:12px;color:#6b7280;cursor:pointer}
-.drop-zone h3{font-size:18px;font-weight:700;color:#1a1a1a}
-.drop-zone p{font-size:14px}
-.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
+body{font-family:'Manrope',system-ui,sans-serif;background:#111;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column}
+a{color:#06b6d4;text-decoration:none}
+.topbar{display:flex;align-items:center;padding:8px 16px;background:#1a1a1a;border-bottom:1px solid #333;gap:12px;flex-shrink:0}
+.topbar a{font-size:13px;color:#888}
+.topbar h1{font-size:15px;font-weight:700}
+.topbar .spacer{flex:1}
+.workspace{display:flex;flex:1;overflow:hidden}
+.sidebar{width:260px;background:#1a1a1a;border-right:1px solid #333;overflow-y:auto;padding:12px;flex-shrink:0}
+.viewport{flex:1;position:relative;overflow:hidden;background:#222}
+#canvas{width:100%;height:100%;display:block}
+.drop-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#888;z-index:10;background:#222}
+.drop-overlay h2{font-size:22px;font-weight:700;color:#e0e0e0}
+.drop-overlay p{font-size:14px}
+.drop-overlay.hidden{display:none}
+.btn{padding:8px 16px;border:1px solid #444;border-radius:6px;background:#2a2a2a;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:#e0e0e0;transition:all .15s}
 .btn:hover{border-color:#06b6d4;color:#06b6d4}
-.btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
-.btn-primary:hover{background:#0891b2}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.btn-accent{background:#06b6d4;color:#fff;border-color:#06b6d4}
+.btn-accent:hover{background:#0891b2}
 input[type="file"]{display:none}
+.section{margin-bottom:16px}
+.section h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px}
+.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.opt-btn{padding:6px 8px;text-align:center;background:#222;border:1px solid #333;border-radius:4px;cursor:pointer;font:inherit;font-size:11px;color:#aaa;transition:all .15s}
+.opt-btn:hover{border-color:#06b6d4;color:#06b6d4}
+.opt-btn.active{border-color:#06b6d4;background:rgba(6,182,212,.1);color:#06b6d4}
+.color-row{display:flex;gap:4px;flex-wrap:wrap}
+.color-swatch{width:28px;height:28px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.color-swatch:hover,.color-swatch.active{border-color:#06b6d4;transform:scale(1.1)}
+.range-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.range-row label{font-size:11px;color:#888;width:60px;flex-shrink:0}
+.range-row input[type="range"]{flex:1;accent-color:#06b6d4}
+.range-row .val{font-size:11px;width:30px;text-align:right;color:#666}
+.export-section{padding-top:12px;border-top:1px solid #333;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+select{font:inherit;font-size:12px;background:#222;border:1px solid #333;color:#e0e0e0;padding:4px 8px;border-radius:4px}
 </style>
 </head>
 <body>
-<a class="back" href="/">← Free3DStore</a>
-<div class="container">
-<h1>📸 Screenshot Studio</h1>
-<p class="subtitle">Professional product shots with lighting presets. Transparent or solid backgrounds. Export up to 4K resolution.</p>
-
-<div class="viewport" id="viewport">
-  <div class="drop-zone" id="drop-zone">
-    <h3>Drop a 3D model here</h3>
-    <p>Supports GLB, OBJ, STL, FBX</p>
-    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
-    <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
+<div class="topbar">
+  <a href="/">← Free3DStore</a>
+  <h1>Screenshot Studio</h1>
+  <span class="spacer"></span>
+  <button class="btn" id="browse-btn">Open Model</button>
+  <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
+</div>
+<div class="workspace">
+  <div class="sidebar">
+    <div class="section">
+      <h3>Lighting Preset</h3>
+      <div class="option-grid">
+        <button class="opt-btn active" data-light="studio">Studio</button>
+        <button class="opt-btn" data-light="outdoor">Outdoor</button>
+        <button class="opt-btn" data-light="dramatic">Dramatic</button>
+        <button class="opt-btn" data-light="soft">Soft</button>
+        <button class="opt-btn" data-light="product">Product</button>
+        <button class="opt-btn" data-light="rim">Rim Light</button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Background</h3>
+      <div class="color-row">
+        <div class="color-swatch active" data-bg="transparent" style="background:repeating-conic-gradient(#444 0% 25%,#333 0% 50%) 50%/8px 8px" title="Transparent"></div>
+        <div class="color-swatch" data-bg="#ffffff" style="background:#fff" title="White"></div>
+        <div class="color-swatch" data-bg="#f0f0f0" style="background:#f0f0f0" title="Light Gray"></div>
+        <div class="color-swatch" data-bg="#1a1a1a" style="background:#1a1a1a;border:1px solid #444" title="Dark"></div>
+        <div class="color-swatch" data-bg="#000000" style="background:#000;border:1px solid #444" title="Black"></div>
+        <div class="color-swatch" data-bg="#0f172a" style="background:#0f172a;border:1px solid #444" title="Navy"></div>
+        <div class="color-swatch" data-bg="#fef3c7" style="background:#fef3c7" title="Warm"></div>
+        <div class="color-swatch" data-bg="#ecfdf5" style="background:#ecfdf5" title="Mint"></div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Camera Angle</h3>
+      <div class="option-grid">
+        <button class="opt-btn active" data-cam="3/4">3/4 View</button>
+        <button class="opt-btn" data-cam="front">Front</button>
+        <button class="opt-btn" data-cam="side">Side</button>
+        <button class="opt-btn" data-cam="top">Top</button>
+        <button class="opt-btn" data-cam="low">Low Angle</button>
+        <button class="opt-btn" data-cam="iso">Isometric</button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Adjustments</h3>
+      <div class="range-row"><label>Exposure</label><input type="range" id="r-exposure" min="0.3" max="3" step="0.1" value="1"><span class="val" id="v-exposure">1.0</span></div>
+      <div class="range-row"><label>Rotate</label><input type="range" id="r-rotate" min="0" max="360" step="1" value="0"><span class="val" id="v-rotate">0</span></div>
+      <div class="range-row"><label>Zoom</label><input type="range" id="r-zoom" min="20" max="90" step="1" value="45"><span class="val" id="v-zoom">45</span></div>
+      <div class="range-row"><label>Shadow</label><input type="range" id="r-shadow" min="0" max="1" step="0.05" value="0.3"><span class="val" id="v-shadow">0.30</span></div>
+    </div>
+    <div class="export-section">
+      <h3>Export</h3>
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+        <label style="font-size:11px;color:#888">Resolution</label>
+        <select id="resolution">
+          <option value="1">1x (viewport)</option>
+          <option value="2" selected>2x</option>
+          <option value="4">4x (4K)</option>
+        </select>
+      </div>
+      <button class="btn btn-accent" id="export-btn" style="width:100%">Download PNG</button>
+    </div>
+  </div>
+  <div class="viewport" id="viewport">
+    <canvas id="canvas"></canvas>
+    <div class="drop-overlay" id="drop-overlay">
+      <h2>Drop a 3D model</h2>
+      <p>GLB, OBJ, STL, FBX</p>
+      <button class="btn btn-accent" id="drop-browse">Choose File</button>
+    </div>
   </div>
 </div>
 
-<div class="panel">
-  <h2>How it works</h2>
-  <p style="color:#6b7280;font-size:14px;line-height:1.7">
-    Drop or browse a 3D model file to get started. Professional product shots with lighting presets. Transparent or solid backgrounds. Export up to 4K resolution.
-    Everything runs in your browser using Three.js — your files never leave your device.
-  </p>
-</div>
-</div>
-
 <script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
 <script type="module">
 import * as THREE from 'three';
@@ -67,63 +128,75 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
-const viewport = document.getElementById('viewport');
-const dropZone = document.getElementById('drop-zone');
-let scene, camera, renderer, controls;
+const canvas = document.getElementById('canvas'), vp = document.getElementById('viewport');
+let model = null;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, vp.clientWidth / vp.clientHeight, 0.01, 200);
+camera.position.set(3, 2, 3);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: true });
+renderer.setSize(vp.clientWidth, vp.clientHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x000000, 0);
+const orbit = new OrbitControls(camera, canvas); orbit.enableDamping = true;
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.ShadowMaterial({ opacity: 0.3 }));
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.01; ground.receiveShadow = true; scene.add(ground);
+const L = { a: new THREE.AmbientLight(0xffffff, 0.4), k: new THREE.DirectionalLight(0xffffff, 1), f: new THREE.DirectionalLight(0xffffff, 0.3), b: new THREE.DirectionalLight(0xffffff, 0.2) };
+L.k.castShadow = true; L.k.shadow.mapSize.set(2048, 2048); [-5,5].forEach(v => { L.k.shadow.camera.left = L.k.shadow.camera.bottom = -v; L.k.shadow.camera.right = L.k.shadow.camera.top = v; });
+Object.values(L).forEach(l => scene.add(l));
+const P = {
+  studio:  {a:.4,k:{i:1.2,p:[4,6,4],c:0xfff5e0},f:{i:.4,p:[-3,4,-2],c:0xe0f0ff},b:{i:.3,p:[-2,3,-5],c:0xffffff}},
+  outdoor: {a:.6,k:{i:1.5,p:[6,10,3],c:0xfffae6},f:{i:.3,p:[-4,2,4],c:0xbde0ff},b:{i:.1,p:[0,1,-5],c:0xcccccc}},
+  dramatic:{a:.15,k:{i:2,p:[5,4,2],c:0xffddaa},f:{i:.1,p:[-5,2,-2],c:0x334466},b:{i:.8,p:[-3,3,-4],c:0xff8844}},
+  soft:    {a:.7,k:{i:.6,p:[3,6,3],c:0xffffff},f:{i:.5,p:[-4,4,-2],c:0xffffff},b:{i:.2,p:[0,2,-4],c:0xffffff}},
+  product: {a:.5,k:{i:1,p:[3,5,4],c:0xffffff},f:{i:.6,p:[-4,3,2],c:0xf0f0ff},b:{i:.4,p:[0,2,-3],c:0xffffff}},
+  rim:     {a:.2,k:{i:.5,p:[2,4,4],c:0xffffff},f:{i:.3,p:[-3,3,3],c:0x6688cc},b:{i:1.5,p:[-1,2,-3],c:0x66ccff}},
+};
+function setLight(n){const p=P[n];if(!p)return;L.a.intensity=p.a;L.k.intensity=p.k.i;L.k.position.set(...p.k.p);L.k.color.set(p.k.c);L.f.intensity=p.f.i;L.f.position.set(...p.f.p);L.f.color.set(p.f.c);L.b.intensity=p.b.i;L.b.position.set(...p.b.p);L.b.color.set(p.b.c);}
+setLight('studio');
+const cams={'3/4':[3,2,3],front:[0,1,4],side:[4,1,0],top:[0,5,.1],low:[3,.3,3],iso:[3,3,3]};
+function setCam(n){const p=cams[n];if(p){camera.position.set(...p);orbit.target.set(0,0,0);orbit.update();}}
+(function anim(){requestAnimationFrame(anim);orbit.update();renderer.render(scene,camera)})();
+window.addEventListener('resize',()=>{camera.aspect=vp.clientWidth/vp.clientHeight;camera.updateProjectionMatrix();renderer.setSize(vp.clientWidth,vp.clientHeight)});
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
-  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
-  camera.position.set(2, 2, 2);
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5, 5, 5);
-  scene.add(dir);
-  scene.add(new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0));
-  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-  animate();
-  window.addEventListener('resize', () => {
-    camera.aspect = viewport.clientWidth / viewport.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  });
-}
-
-async function loadFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-  try {
+async function loadModel(file){
+  if(model){scene.remove(model);model=null}
+  const ext=file.name.split('.').pop().toLowerCase(),url=URL.createObjectURL(file);
+  try{
     let obj;
-    if (ext === 'glb' || ext === 'gltf') { const g = await new GLTFLoader().loadAsync(url); obj = g.scene; }
-    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
-    else if (ext === 'stl') { const geo = await new STLLoader().loadAsync(url); obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x808080})); }
-    else { alert('Unsupported: ' + ext); return; }
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const s = Math.max(size.x, size.y, size.z);
-    const scale = s > 0 ? 2 / s : 1;
-    obj.position.sub(center);
-    obj.scale.multiplyScalar(scale);
-    scene.add(obj);
-    dropZone.style.display = 'none';
-    viewport.appendChild(renderer.domElement);
-  } finally { URL.revokeObjectURL(url); }
+    if(ext==='glb'||ext==='gltf')obj=(await new GLTFLoader().loadAsync(url)).scene;
+    else if(ext==='obj')obj=await new OBJLoader().loadAsync(url);
+    else if(ext==='stl')obj=new THREE.Mesh(await new STLLoader().loadAsync(url),new THREE.MeshStandardMaterial({color:0x888888,roughness:.4,metalness:.1}));
+    else if(ext==='fbx')obj=await new FBXLoader().loadAsync(url);
+    else{alert('Unsupported');return}
+    const box=new THREE.Box3().setFromObject(obj),c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());
+    const m=Math.max(s.x,s.y,s.z);if(m>0){obj.position.sub(c);obj.scale.multiplyScalar(2/m)}
+    const b2=new THREE.Box3().setFromObject(obj);obj.position.y-=b2.min.y;
+    obj.traverse(ch=>{if(ch.isMesh){ch.castShadow=true;ch.receiveShadow=true}});
+    scene.add(obj);model=obj;document.getElementById('drop-overlay').classList.add('hidden');
+  }finally{URL.revokeObjectURL(url)}
 }
 
-document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
-viewport.addEventListener('dragover', e => e.preventDefault());
-viewport.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-init();
+document.querySelectorAll('[data-light]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-light]').forEach(x=>x.classList.remove('active'));b.classList.add('active');setLight(b.dataset.light)}));
+document.querySelectorAll('[data-bg]').forEach(s=>s.addEventListener('click',()=>{document.querySelectorAll('[data-bg]').forEach(x=>x.classList.remove('active'));s.classList.add('active');if(s.dataset.bg==='transparent'){scene.background=null;renderer.setClearColor(0,0)}else{scene.background=new THREE.Color(s.dataset.bg);renderer.setClearColor(new THREE.Color(s.dataset.bg),1)}}));
+document.querySelectorAll('[data-cam]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('[data-cam]').forEach(x=>x.classList.remove('active'));b.classList.add('active');setCam(b.dataset.cam)}));
+document.getElementById('r-exposure').addEventListener('input',function(){renderer.toneMappingExposure=+this.value;document.getElementById('v-exposure').textContent=(+this.value).toFixed(1)});
+document.getElementById('r-rotate').addEventListener('input',function(){if(model)model.rotation.y=+this.value*Math.PI/180;document.getElementById('v-rotate').textContent=this.value});
+document.getElementById('r-zoom').addEventListener('input',function(){camera.fov=+this.value;camera.updateProjectionMatrix();document.getElementById('v-zoom').textContent=this.value});
+document.getElementById('r-shadow').addEventListener('input',function(){ground.material.opacity=+this.value;document.getElementById('v-shadow').textContent=(+this.value).toFixed(2)});
+document.getElementById('export-btn').addEventListener('click',()=>{
+  const s=+document.getElementById('resolution').value,w=vp.clientWidth*s,h=vp.clientHeight*s;
+  renderer.setSize(w,h);renderer.setPixelRatio(1);renderer.render(scene,camera);
+  const a=document.createElement('a');a.download=`screenshot-${w}x${h}.png`;a.href=renderer.domElement.toDataURL('image/png');a.click();
+  renderer.setSize(vp.clientWidth,vp.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+});
+document.getElementById('browse-btn').addEventListener('click',()=>document.getElementById('file-input').click());
+document.getElementById('drop-browse').addEventListener('click',()=>document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change',e=>{if(e.target.files[0])loadModel(e.target.files[0])});
+vp.addEventListener('dragover',e=>e.preventDefault());
+vp.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files[0])loadModel(e.dataTransfer.files[0])});
 </script>
-<script src="/related.js" defer></script>
 </body>
 </html>
