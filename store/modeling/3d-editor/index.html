@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Editor - Free3DStore</title>
+<meta name="description" content="Browser-based 3D editor. Add primitives, transform with gizmos, edit materials, save to disk or browser. Like a simple 3DS Max in your browser.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#1e1e1e;--panel:#252526;--panel2:#2d2d2d;--border:#3e3e3e;--text:#ccc;--dim:#888;--accent:#06b6d4;--accent2:#0891b2;--select:#094771;--danger:#ef4444;--white:#fff}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh;display:flex;flex-direction:column;font-size:13px;user-select:none}
+button{font-family:inherit;font-size:12px;cursor:pointer;border:none;background:none;color:var(--text);padding:4px 8px;border-radius:3px}
+button:hover{background:rgba(255,255,255,.08)}
+input[type="number"],input[type="text"],input[type="color"]{font-family:inherit;font-size:12px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;outline:none}
+input[type="number"]{width:60px;text-align:right}
+input[type="color"]{width:28px;height:22px;padding:1px;cursor:pointer}
+input[type="range"]{width:100%;accent-color:var(--accent)}
+input:focus{border-color:var(--accent)}
+select{font-size:12px;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;outline:none}
+
+/* Menubar */
+.menubar{display:flex;align-items:center;background:var(--panel);border-bottom:1px solid var(--border);padding:0 8px;height:32px;gap:2px;flex-shrink:0}
+.menubar .brand{font-weight:700;color:var(--accent);margin-right:12px;font-size:13px}
+.menu-group{display:flex;gap:1px}
+.menu-group button{font-size:12px;padding:4px 10px}
+.menu-group button.active{background:var(--accent);color:var(--white)}
+.spacer{flex:1}
+.status{font-size:11px;color:var(--dim)}
+
+/* Layout */
+.workspace{display:flex;flex:1;overflow:hidden}
+.panel-left{width:220px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.panel-right{width:240px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.viewport-container{flex:1;position:relative;overflow:hidden}
+#viewport{width:100%;height:100%;display:block}
+
+/* Panels */
+.panel-header{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);padding:8px 10px 4px;border-bottom:1px solid var(--border)}
+.panel-section{padding:8px 10px}
+.panel-section h4{font-size:11px;font-weight:600;color:var(--dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+
+/* Scene hierarchy */
+.scene-list{list-style:none;padding:0;flex:1;overflow-y:auto}
+.scene-item{padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:12px;border-left:2px solid transparent}
+.scene-item:hover{background:rgba(255,255,255,.04)}
+.scene-item.selected{background:var(--select);border-left-color:var(--accent)}
+.scene-item .icon{font-size:11px;opacity:.6}
+.scene-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scene-item .vis{opacity:.4;font-size:10px;padding:2px 4px}
+.scene-item .vis:hover{opacity:1}
+.scene-item .vis.hidden{opacity:.2}
+
+/* Add menu */
+.add-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:8px 10px}
+.add-btn{padding:6px;text-align:center;background:var(--panel2);border:1px solid var(--border);border-radius:4px;font-size:11px}
+.add-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* Properties */
+.prop-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.prop-label{width:14px;font-size:11px;font-weight:700;text-align:center;flex-shrink:0}
+.prop-label.x{color:#ef4444}.prop-label.y{color:#22c55e}.prop-label.z{color:#3b82f6}
+.prop-row input[type="number"]{flex:1}
+.mat-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mat-row label{font-size:11px;color:var(--dim);width:70px;flex-shrink:0}
+.mat-row input[type="range"]{flex:1}
+.mat-row .val{font-size:11px;width:30px;text-align:right;color:var(--dim)}
+
+/* Toolbar */
+.toolbar-bottom{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--panel);border-top:1px solid var(--border);flex-shrink:0;height:30px}
+.mode-btn{padding:3px 10px;border:1px solid var(--border);border-radius:3px;font-size:11px;font-weight:600}
+.mode-btn.active{background:var(--accent);color:var(--white);border-color:var(--accent)}
+.tb-sep{width:1px;height:16px;background:var(--border)}
+
+/* Recent files */
+.recent-item{padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px}
+.recent-item:hover{background:rgba(255,255,255,.04)}
+.recent-thumb{width:32px;height:32px;border-radius:3px;background:var(--bg);object-fit:cover}
+.recent-meta{flex:1;overflow:hidden}
+.recent-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-info{font-size:10px;color:var(--dim)}
+.recent-del{opacity:.3;padding:4px}
+.recent-del:hover{opacity:1;color:var(--danger)}
+
+/* Empty state */
+.empty{text-align:center;padding:20px;color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- Menubar -->
+<div class="menubar">
+  <span class="brand">Free3DStore Editor</span>
+  <div class="menu-group">
+    <button id="btn-new" title="New scene">New</button>
+    <button id="btn-open" title="Open from disk">Open</button>
+    <button id="btn-save" title="Save to disk">Save</button>
+    <button id="btn-save-browser" title="Save to browser storage">Save Local</button>
+  </div>
+  <div class="menu-group" style="margin-left:12px">
+    <button id="btn-undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button id="btn-redo" title="Redo (Ctrl+Y)">Redo</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="status" id="status">Ready</span>
+</div>
+
+<!-- Workspace -->
+<div class="workspace">
+
+  <!-- Left panel: hierarchy + add -->
+  <div class="panel-left">
+    <div class="panel-header">Scene</div>
+    <ul class="scene-list" id="scene-list"></ul>
+    <div class="panel-header">Add Object</div>
+    <div class="add-grid">
+      <button class="add-btn" data-prim="box">Box</button>
+      <button class="add-btn" data-prim="sphere">Sphere</button>
+      <button class="add-btn" data-prim="cylinder">Cylinder</button>
+      <button class="add-btn" data-prim="cone">Cone</button>
+      <button class="add-btn" data-prim="torus">Torus</button>
+      <button class="add-btn" data-prim="plane">Plane</button>
+      <button class="add-btn" data-prim="light">Light</button>
+      <button class="add-btn" data-prim="import">Import...</button>
+    </div>
+    <div class="panel-header">Recent Files</div>
+    <div id="recent-list" style="overflow-y:auto;flex:1"><div class="empty">No recent files</div></div>
+  </div>
+
+  <!-- Viewport -->
+  <div class="viewport-container">
+    <canvas id="viewport"></canvas>
+  </div>
+
+  <!-- Right panel: properties -->
+  <div class="panel-right" id="props-panel">
+    <div class="panel-header">Properties</div>
+    <div id="props-empty" class="empty" style="padding:40px 20px">Select an object to edit its properties</div>
+    <div id="props-content" style="display:none">
+      <div class="panel-section">
+        <h4>Name</h4>
+        <input type="text" id="prop-name" style="width:100%">
+      </div>
+      <div class="panel-section">
+        <h4>Position</h4>
+        <div class="prop-row"><span class="prop-label x">X</span><input type="number" id="pos-x" step="0.1"><span class="prop-label y">Y</span><input type="number" id="pos-y" step="0.1"><span class="prop-label z">Z</span><input type="number" id="pos-z" step="0.1"></div>
+      </div>
+      <div class="panel-section">
+        <h4>Rotation (deg)</h4>
+        <div class="prop-row"><span class="prop-label x">X</span><input type="number" id="rot-x" step="1"><span class="prop-label y">Y</span><input type="number" id="rot-y" step="1"><span class="prop-label z">Z</span><input type="number" id="rot-z" step="1"></div>
+      </div>
+      <div class="panel-section">
+        <h4>Scale</h4>
+        <div class="prop-row"><span class="prop-label x">X</span><input type="number" id="scl-x" step="0.1" min="0.01"><span class="prop-label y">Y</span><input type="number" id="scl-y" step="0.1" min="0.01"><span class="prop-label z">Z</span><input type="number" id="scl-z" step="0.1" min="0.01"></div>
+      </div>
+      <div class="panel-section" id="mat-section">
+        <h4>Material</h4>
+        <div class="mat-row"><label>Color</label><input type="color" id="mat-color" value="#808080"></div>
+        <div class="mat-row"><label>Metalness</label><input type="range" id="mat-metal" min="0" max="1" step="0.01" value="0"><span class="val" id="mat-metal-val">0</span></div>
+        <div class="mat-row"><label>Roughness</label><input type="range" id="mat-rough" min="0" max="1" step="0.01" value="0.5"><span class="val" id="mat-rough-val">0.5</span></div>
+        <div class="mat-row"><label>Wireframe</label><input type="checkbox" id="mat-wire"></div>
+      </div>
+      <div class="panel-section" id="light-section" style="display:none">
+        <h4>Light</h4>
+        <div class="mat-row"><label>Color</label><input type="color" id="light-color" value="#ffffff"></div>
+        <div class="mat-row"><label>Intensity</label><input type="range" id="light-intensity" min="0" max="5" step="0.1" value="1"><span class="val" id="light-int-val">1</span></div>
+      </div>
+      <div class="panel-section">
+        <button id="btn-duplicate" style="width:100%;padding:6px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;margin-bottom:4px">Duplicate</button>
+        <button id="btn-delete" style="width:100%;padding:6px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:4px;color:#ef4444">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom toolbar -->
+<div class="toolbar-bottom">
+  <button class="mode-btn active" data-mode="translate" id="mode-translate">Move (W)</button>
+  <button class="mode-btn" data-mode="rotate" id="mode-rotate">Rotate (E)</button>
+  <button class="mode-btn" data-mode="scale" id="mode-scale">Scale (R)</button>
+  <span class="tb-sep"></span>
+  <button class="mode-btn" id="btn-grid-toggle" title="Toggle grid">Grid</button>
+  <button class="mode-btn" id="btn-snap" title="Toggle snapping">Snap</button>
+  <span class="spacer"></span>
+  <span class="status" id="obj-count">0 objects</span>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+
+// ── State ──────────────────────────────────────────────
+const objects = [];       // user-created objects in scene
+let selected = null;      // currently selected object
+const undoStack = [];
+const redoStack = [];
+let snapEnabled = false;
+const DEG = 180 / Math.PI;
+const RAD = Math.PI / 180;
+
+// ── Scene setup ────────────────────────────────────────
+const canvas = document.getElementById('viewport');
+const container = canvas.parentElement;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+
+const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.01, 1000);
+camera.position.set(4, 3, 4);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.shadowMap.enabled = true;
+
+const orbit = new OrbitControls(camera, canvas);
+orbit.enableDamping = true;
+orbit.dampingFactor = 0.08;
+
+const transform = new TransformControls(camera, canvas);
+transform.size = 0.8;
+scene.add(transform.getHelper());
+transform.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
+transform.addEventListener('objectChange', () => { updateProps(); });
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 8, 5);
+dirLight.castShadow = true;
+scene.add(dirLight);
+
+// Grid
+const grid = new THREE.GridHelper(20, 20, 0x444466, 0x333355);
+scene.add(grid);
+
+// Raycaster for selection
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// ── Animation loop ─────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  orbit.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+// ── Undo / Redo ────────────────────────────────────────
+function snapshot() {
+  undoStack.push(objects.map(o => ({
+    uuid: o.uuid,
+    pos: o.position.clone(),
+    rot: o.rotation.clone(),
+    scl: o.scale.clone(),
+  })));
+  if (undoStack.length > 50) undoStack.shift();
+  redoStack.length = 0;
+}
+
+function restoreSnapshot(stack, oppositeStack) {
+  if (!stack.length) return;
+  oppositeStack.push(objects.map(o => ({
+    uuid: o.uuid,
+    pos: o.position.clone(),
+    rot: o.rotation.clone(),
+    scl: o.scale.clone(),
+  })));
+  const snap = stack.pop();
+  for (const s of snap) {
+    const obj = objects.find(o => o.uuid === s.uuid);
+    if (obj) {
+      obj.position.copy(s.pos);
+      obj.rotation.copy(s.rot);
+      obj.scale.copy(s.scl);
+    }
+  }
+  updateProps();
+}
+
+// ── Add primitives ─────────────────────────────────────
+let nameCounter = 0;
+
+function addObject(obj, name) {
+  snapshot();
+  obj.userData.editorName = name || `Object ${++nameCounter}`;
+  obj.userData.editorType = 'mesh';
+  if (obj.isMesh) {
+    obj.castShadow = true;
+    obj.receiveShadow = true;
+  }
+  scene.add(obj);
+  objects.push(obj);
+  selectObject(obj);
+  refreshHierarchy();
+  status(`Added ${obj.userData.editorName}`);
+}
+
+function makeMat(color = 0x808080) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0 });
+}
+
+const primitives = {
+  box: () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), makeMat(0x4a9eff)),
+  sphere: () => new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), makeMat(0xff6b6b)),
+  cylinder: () => new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1, 32), makeMat(0x51cf66)),
+  cone: () => new THREE.Mesh(new THREE.ConeGeometry(0.5, 1, 32), makeMat(0xfcc419)),
+  torus: () => new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.15, 16, 48), makeMat(0xcc5de8)),
+  plane: () => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), makeMat(0x868e96));
+    m.rotation.x = -Math.PI / 2;
+    m.receiveShadow = true;
+    return m;
+  },
+  light: () => {
+    const l = new THREE.PointLight(0xffffff, 1, 20);
+    l.position.set(0, 2, 0);
+    l.userData.editorType = 'light';
+    const helper = new THREE.PointLightHelper(l, 0.2);
+    l.userData.helper = helper;
+    scene.add(helper);
+    return l;
+  },
+};
+
+document.querySelectorAll('.add-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.prim;
+    if (type === 'import') { importFile(); return; }
+    if (primitives[type]) {
+      const obj = primitives[type]();
+      addObject(obj, `${type.charAt(0).toUpperCase() + type.slice(1)} ${++nameCounter}`);
+      nameCounter--; // addObject already increments
+    }
+  });
+});
+
+// ── Selection ──────────────────────────────────────────
+function selectObject(obj) {
+  // Remove outline from previous
+  if (selected && selected !== obj) {
+    selected.traverse(c => { if (c.isMesh) c.material.emissive?.set(0x000000); });
+  }
+
+  selected = obj;
+  if (obj) {
+    transform.attach(obj);
+    obj.traverse(c => { if (c.isMesh) c.material.emissive?.set(0x111122); });
+  } else {
+    transform.detach();
+  }
+  updateProps();
+  refreshHierarchy();
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  if (transform.dragging) return;
+
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const meshes = [];
+  for (const obj of objects) {
+    obj.traverse(c => { if (c.isMesh) meshes.push(c); });
+    if (obj.isLight) meshes.push(obj); // lights aren't meshes but we want to pick them
+  }
+
+  const hits = raycaster.intersectObjects(meshes, false);
+  if (hits.length) {
+    // Find the top-level editor object
+    let target = hits[0].object;
+    while (target.parent && !objects.includes(target)) target = target.parent;
+    if (objects.includes(target)) { selectObject(target); return; }
+  }
+  selectObject(null);
+});
+
+// ── Properties panel ───────────────────────────────────
+const propName = document.getElementById('prop-name');
+const posX = document.getElementById('pos-x'), posY = document.getElementById('pos-y'), posZ = document.getElementById('pos-z');
+const rotX = document.getElementById('rot-x'), rotY = document.getElementById('rot-y'), rotZ = document.getElementById('rot-z');
+const sclX = document.getElementById('scl-x'), sclY = document.getElementById('scl-y'), sclZ = document.getElementById('scl-z');
+const matColor = document.getElementById('mat-color');
+const matMetal = document.getElementById('mat-metal'), matMetalVal = document.getElementById('mat-metal-val');
+const matRough = document.getElementById('mat-rough'), matRoughVal = document.getElementById('mat-rough-val');
+const matWire = document.getElementById('mat-wire');
+const lightColor = document.getElementById('light-color');
+const lightIntensity = document.getElementById('light-intensity'), lightIntVal = document.getElementById('light-int-val');
+
+function updateProps() {
+  const propsEmpty = document.getElementById('props-empty');
+  const propsContent = document.getElementById('props-content');
+  const matSection = document.getElementById('mat-section');
+  const lightSection = document.getElementById('light-section');
+
+  if (!selected) {
+    propsEmpty.style.display = '';
+    propsContent.style.display = 'none';
+    return;
+  }
+
+  propsEmpty.style.display = 'none';
+  propsContent.style.display = '';
+
+  propName.value = selected.userData.editorName || '';
+  posX.value = r(selected.position.x); posY.value = r(selected.position.y); posZ.value = r(selected.position.z);
+  rotX.value = r(selected.rotation.x * DEG); rotY.value = r(selected.rotation.y * DEG); rotZ.value = r(selected.rotation.z * DEG);
+  sclX.value = r(selected.scale.x); sclY.value = r(selected.scale.y); sclZ.value = r(selected.scale.z);
+
+  const isLight = selected.isLight;
+  matSection.style.display = isLight ? 'none' : '';
+  lightSection.style.display = isLight ? '' : 'none';
+
+  if (isLight) {
+    lightColor.value = '#' + selected.color.getHexString();
+    lightIntensity.value = selected.intensity;
+    lightIntVal.textContent = selected.intensity.toFixed(1);
+  } else if (selected.isMesh && selected.material) {
+    const m = selected.material;
+    matColor.value = '#' + (m.color?.getHexString() || '808080');
+    matMetal.value = m.metalness ?? 0; matMetalVal.textContent = (m.metalness ?? 0).toFixed(2);
+    matRough.value = m.roughness ?? 0.5; matRoughVal.textContent = (m.roughness ?? 0.5).toFixed(2);
+    matWire.checked = m.wireframe || false;
+  }
+
+  document.getElementById('obj-count').textContent = `${objects.length} object${objects.length !== 1 ? 's' : ''}`;
+}
+
+function r(v) { return Math.round(v * 100) / 100; }
+
+// Bind property inputs
+function bindTransform(input, axis, prop, mult = 1) {
+  input.addEventListener('change', () => {
+    if (!selected) return;
+    snapshot();
+    selected[prop][axis] = parseFloat(input.value) * mult;
+    if (selected.userData.helper) selected.userData.helper.update();
+  });
+}
+bindTransform(posX, 'x', 'position'); bindTransform(posY, 'y', 'position'); bindTransform(posZ, 'z', 'position');
+bindTransform(rotX, 'x', 'rotation', RAD); bindTransform(rotY, 'y', 'rotation', RAD); bindTransform(rotZ, 'z', 'rotation', RAD);
+bindTransform(sclX, 'x', 'scale'); bindTransform(sclY, 'y', 'scale'); bindTransform(sclZ, 'z', 'scale');
+
+propName.addEventListener('change', () => {
+  if (selected) { selected.userData.editorName = propName.value; refreshHierarchy(); }
+});
+
+matColor.addEventListener('input', () => {
+  if (selected?.isMesh) selected.material.color.set(matColor.value);
+});
+matMetal.addEventListener('input', () => {
+  if (selected?.isMesh) { selected.material.metalness = parseFloat(matMetal.value); matMetalVal.textContent = matMetal.value; }
+});
+matRough.addEventListener('input', () => {
+  if (selected?.isMesh) { selected.material.roughness = parseFloat(matRough.value); matRoughVal.textContent = matRough.value; }
+});
+matWire.addEventListener('change', () => {
+  if (selected?.isMesh) selected.material.wireframe = matWire.checked;
+});
+lightColor.addEventListener('input', () => {
+  if (selected?.isLight) { selected.color.set(lightColor.value); selected.userData.helper?.update(); }
+});
+lightIntensity.addEventListener('input', () => {
+  if (selected?.isLight) { selected.intensity = parseFloat(lightIntensity.value); lightIntVal.textContent = parseFloat(lightIntensity.value).toFixed(1); }
+});
+
+// ── Scene hierarchy ────────────────────────────────────
+const sceneList = document.getElementById('scene-list');
+
+function refreshHierarchy() {
+  sceneList.innerHTML = '';
+  for (const obj of objects) {
+    const li = document.createElement('li');
+    li.className = 'scene-item' + (obj === selected ? ' selected' : '');
+    const icon = obj.isLight ? '💡' : '🧊';
+    li.innerHTML = `<span class="icon">${icon}</span><span class="name">${obj.userData.editorName || 'Object'}</span><span class="vis" title="Toggle visibility">${obj.visible ? '👁' : '—'}</span>`;
+    li.querySelector('.name').addEventListener('click', () => selectObject(obj));
+    li.querySelector('.vis').addEventListener('click', (e) => {
+      e.stopPropagation();
+      obj.visible = !obj.visible;
+      if (obj.userData.helper) obj.userData.helper.visible = obj.visible;
+      refreshHierarchy();
+    });
+    sceneList.appendChild(li);
+  }
+  document.getElementById('obj-count').textContent = `${objects.length} object${objects.length !== 1 ? 's' : ''}`;
+}
+
+// ── Delete / Duplicate ─────────────────────────────────
+document.getElementById('btn-delete').addEventListener('click', deleteSelected);
+document.getElementById('btn-duplicate').addEventListener('click', duplicateSelected);
+
+function deleteSelected() {
+  if (!selected) return;
+  snapshot();
+  scene.remove(selected);
+  if (selected.userData.helper) scene.remove(selected.userData.helper);
+  objects.splice(objects.indexOf(selected), 1);
+  transform.detach();
+  status(`Deleted ${selected.userData.editorName}`);
+  selected = null;
+  updateProps();
+  refreshHierarchy();
+}
+
+function duplicateSelected() {
+  if (!selected) return;
+  snapshot();
+  const clone = selected.clone();
+  clone.position.x += 1;
+  if (clone.isMesh) clone.material = selected.material.clone();
+  clone.userData = { ...selected.userData, editorName: selected.userData.editorName + ' copy' };
+  if (clone.isLight) {
+    const helper = new THREE.PointLightHelper(clone, 0.2);
+    clone.userData.helper = helper;
+    scene.add(helper);
+  }
+  scene.add(clone);
+  objects.push(clone);
+  selectObject(clone);
+  refreshHierarchy();
+  status(`Duplicated ${selected.userData.editorName}`);
+}
+
+// ── Transform modes ────────────────────────────────────
+document.querySelectorAll('.mode-btn[data-mode]').forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+
+function setMode(mode) {
+  transform.setMode(mode);
+  document.querySelectorAll('.mode-btn[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+}
+
+document.getElementById('btn-grid-toggle').addEventListener('click', function() {
+  grid.visible = !grid.visible;
+  this.classList.toggle('active', grid.visible);
+});
+document.getElementById('btn-grid-toggle').classList.add('active');
+
+document.getElementById('btn-snap').addEventListener('click', function() {
+  snapEnabled = !snapEnabled;
+  this.classList.toggle('active', snapEnabled);
+  transform.setTranslationSnap(snapEnabled ? 0.5 : null);
+  transform.setRotationSnap(snapEnabled ? Math.PI / 12 : null);
+  transform.setScaleSnap(snapEnabled ? 0.25 : null);
+});
+
+// ── Keyboard shortcuts ─────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  switch (e.key.toLowerCase()) {
+    case 'w': setMode('translate'); break;
+    case 'e': setMode('rotate'); break;
+    case 'r': setMode('scale'); break;
+    case 'delete': case 'backspace': deleteSelected(); break;
+    case 'd': if (e.ctrlKey || e.metaKey) { e.preventDefault(); duplicateSelected(); } break;
+    case 'z': if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.shiftKey ? restoreSnapshot(redoStack, undoStack) : restoreSnapshot(undoStack, redoStack); } break;
+    case 'y': if (e.ctrlKey || e.metaKey) { e.preventDefault(); restoreSnapshot(redoStack, undoStack); } break;
+    case 'escape': selectObject(null); break;
+  }
+});
+
+// ── File operations ────────────────────────────────────
+const DB_NAME = 'free3dstore';
+const DB_VER = 1;
+const STORE = 'files';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = () => {
+      if (!r.result.objectStoreNames.contains(STORE)) {
+        const s = r.result.createObjectStore(STORE, { keyPath: 'id' });
+        s.createIndex('accessedAt', 'accessedAt');
+      }
+    };
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+}
+
+function idbReq(r) { return new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+
+// Save to disk (File System Access API or fallback)
+document.getElementById('btn-save').addEventListener('click', async () => {
+  const exporter = new GLTFExporter();
+  const exportObjects = objects.filter(o => o.isMesh || o.isGroup);
+  if (!exportObjects.length) { status('Nothing to save'); return; }
+
+  const group = new THREE.Group();
+  exportObjects.forEach(o => group.add(o.clone()));
+  const result = await exporter.parseAsync(group, { binary: true });
+  const blob = new Blob([result], { type: 'model/gltf-binary' });
+
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'scene.glb',
+        types: [{ description: 'GLB File', accept: { 'model/gltf-binary': ['.glb'] } }],
+      });
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+      status(`Saved to ${handle.name}`);
+    } catch (e) { if (e.name !== 'AbortError') status('Save failed'); }
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'scene.glb'; a.click();
+    URL.revokeObjectURL(url);
+    status('Downloaded scene.glb');
+  }
+});
+
+// Save to browser (IndexedDB)
+document.getElementById('btn-save-browser').addEventListener('click', async () => {
+  const exporter = new GLTFExporter();
+  const exportObjects = objects.filter(o => o.isMesh || o.isGroup);
+  if (!exportObjects.length) { status('Nothing to save'); return; }
+
+  const group = new THREE.Group();
+  exportObjects.forEach(o => group.add(o.clone()));
+  const result = await exporter.parseAsync(group, { binary: true });
+
+  // Capture thumbnail
+  renderer.render(scene, camera);
+  const thumb = document.createElement('canvas');
+  thumb.width = 128; thumb.height = 128;
+  thumb.getContext('2d').drawImage(canvas, 0, 0, 128, 128);
+
+  const now = Date.now();
+  const name = `scene-${new Date().toISOString().slice(0,16).replace('T','-').replace(':','')}.glb`;
+  const entry = {
+    id: `${now}-${name}`,
+    name,
+    size: result.byteLength,
+    format: 'glb',
+    data: result,
+    thumbnail: thumb.toDataURL('image/webp', 0.7),
+    createdAt: now,
+    accessedAt: now,
+  };
+
+  const db = await openDB();
+  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put(entry));
+  db.close();
+  status(`Saved to browser: ${name}`);
+  loadRecentFiles();
+});
+
+// Open from disk
+document.getElementById('btn-open').addEventListener('click', async () => {
+  if ('showOpenFilePicker' in window) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: '3D Models', accept: { 'model/*': ['.glb', '.gltf', '.obj', '.stl'] } }],
+      });
+      const file = await handle.getFile();
+      await importModelFile(file);
+    } catch (e) { if (e.name !== 'AbortError') status('Open failed'); }
+  } else {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.glb,.gltf,.obj,.stl';
+    input.onchange = () => { if (input.files[0]) importModelFile(input.files[0]); };
+    input.click();
+  }
+});
+
+function importFile() {
+  document.getElementById('btn-open').click();
+}
+
+async function importModelFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const url = URL.createObjectURL(file);
+  try {
+    let obj;
+    if (ext === 'glb' || ext === 'gltf') {
+      const gltf = await new GLTFLoader().loadAsync(url);
+      obj = gltf.scene;
+    } else if (ext === 'obj') {
+      obj = await new OBJLoader().loadAsync(url);
+    } else if (ext === 'stl') {
+      const geo = await new STLLoader().loadAsync(url);
+      obj = new THREE.Mesh(geo, makeMat(0x808080));
+    } else {
+      status('Unsupported format');
+      return;
+    }
+
+    // Center and scale
+    const box = new THREE.Box3().setFromObject(obj);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) {
+      const s = 2 / maxDim;
+      obj.position.sub(center);
+      obj.scale.multiplyScalar(s);
+    }
+    addObject(obj, file.name.replace(/\.[^.]+$/, ''));
+
+    // Save to IndexedDB for recent files
+    const now = Date.now();
+    const db = await openDB();
+    renderer.render(scene, camera);
+    const thumb = document.createElement('canvas');
+    thumb.width = 128; thumb.height = 128;
+    thumb.getContext('2d').drawImage(canvas, 0, 0, 128, 128);
+    await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+      id: `${now}-${file.name}`,
+      name: file.name,
+      size: file.size,
+      format: ext,
+      data: await file.arrayBuffer(),
+      thumbnail: thumb.toDataURL('image/webp', 0.7),
+      createdAt: now,
+      accessedAt: now,
+    }));
+    db.close();
+    loadRecentFiles();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// New scene
+document.getElementById('btn-new').addEventListener('click', () => {
+  if (objects.length && !confirm('Clear scene? Unsaved changes will be lost.')) return;
+  while (objects.length) {
+    const obj = objects.pop();
+    scene.remove(obj);
+    if (obj.userData.helper) scene.remove(obj.userData.helper);
+  }
+  transform.detach();
+  selected = null;
+  nameCounter = 0;
+  undoStack.length = 0;
+  redoStack.length = 0;
+  updateProps();
+  refreshHierarchy();
+  status('New scene');
+});
+
+// Undo/Redo buttons
+document.getElementById('btn-undo').addEventListener('click', () => restoreSnapshot(undoStack, redoStack));
+document.getElementById('btn-redo').addEventListener('click', () => restoreSnapshot(redoStack, undoStack));
+
+// ── Recent files ───────────────────────────────────────
+const recentList = document.getElementById('recent-list');
+
+async function loadRecentFiles() {
+  try {
+    const db = await openDB();
+    const store = db.transaction(STORE, 'readonly').objectStore(STORE);
+    const index = store.index('accessedAt');
+    const items = [];
+
+    await new Promise((resolve, reject) => {
+      const cursor = index.openCursor(null, 'prev');
+      cursor.onsuccess = () => {
+        const c = cursor.result;
+        if (c && items.length < 10) {
+          const { data, ...meta } = c.value;
+          items.push(meta);
+          c.continue();
+        } else { resolve(); }
+      };
+      cursor.onerror = () => reject(cursor.error);
+    });
+    db.close();
+
+    if (!items.length) {
+      recentList.innerHTML = '<div class="empty">No recent files</div>';
+      return;
+    }
+
+    recentList.innerHTML = '';
+    for (const item of items) {
+      const div = document.createElement('div');
+      div.className = 'recent-item';
+      const ago = timeAgo(item.accessedAt);
+      const sizeStr = item.size > 1024 * 1024 ? (item.size / 1024 / 1024).toFixed(1) + ' MB' : (item.size / 1024).toFixed(0) + ' KB';
+      div.innerHTML = `
+        ${item.thumbnail ? `<img class="recent-thumb" src="${item.thumbnail}">` : '<div class="recent-thumb"></div>'}
+        <div class="recent-meta">
+          <div class="recent-name">${item.name}</div>
+          <div class="recent-info">${sizeStr} · ${item.format.toUpperCase()} · ${ago}</div>
+        </div>
+        <button class="recent-del" title="Remove">✕</button>
+      `;
+      div.querySelector('.recent-meta').addEventListener('click', () => loadRecent(item.id));
+      div.querySelector('.recent-del').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const db2 = await openDB();
+        await idbReq(db2.transaction(STORE, 'readwrite').objectStore(STORE).delete(item.id));
+        db2.close();
+        loadRecentFiles();
+      });
+      recentList.appendChild(div);
+    }
+  } catch { recentList.innerHTML = '<div class="empty">No recent files</div>'; }
+}
+
+async function loadRecent(id) {
+  const db = await openDB();
+  const entry = await idbReq(db.transaction(STORE, 'readonly').objectStore(STORE).get(id));
+  db.close();
+  if (!entry) return;
+
+  // Update access time
+  entry.accessedAt = Date.now();
+  const db2 = await openDB();
+  await idbReq(db2.transaction(STORE, 'readwrite').objectStore(STORE).put(entry));
+  db2.close();
+
+  const file = new File([entry.data], entry.name, { type: 'model/gltf-binary' });
+  await importModelFile(file);
+  loadRecentFiles();
+}
+
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+}
+
+function status(msg) {
+  document.getElementById('status').textContent = msg;
+  setTimeout(() => { document.getElementById('status').textContent = 'Ready'; }, 3000);
+}
+
+// ── Drag and drop on viewport ──────────────────────────
+canvas.addEventListener('dragover', e => e.preventDefault());
+canvas.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files[0]) importModelFile(e.dataTransfer.files[0]);
+});
+
+// ── Init ───────────────────────────────────────────────
+refreshHierarchy();
+loadRecentFiles();
+</script>
+</body>
+</html>

@@ -1,6 +1,15 @@
 {
   "tools": [
     {
+      "id": "3d-editor",
+      "name": "3D Editor",
+      "description": "Browser-based 3D editor. Scene hierarchy, transform gizmos, material editor, undo/redo, save to disk or browser. A simple 3DS Max in your browser.",
+      "icon": "🏗️",
+      "iconBg": "#06b6d4",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
       "id": "model-viewer",
       "name": "3D Model Viewer",
       "description": "Interactive 3D model viewer with orbit controls. Load GLB, OBJ, STL, FBX files. Wireframe, stats, screenshots.",
