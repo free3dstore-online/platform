@@ -482,7 +482,7 @@ function addObject(obj, type) {
   selectObject(obj);
   refreshList();
   showStatus(`Created ${obj.userData.editorName}`);
-  scheduleAutosave();
+  autosaveDirty = true; doAutosave(); // immediate, not debounced
 }
 
 const primFactory = {
@@ -647,7 +647,7 @@ function deleteSelected() {
   scene.remove(selected); if (selected.userData.helper) scene.remove(selected.userData.helper);
   objects.splice(objects.indexOf(selected), 1);
   showStatus(`Deleted ${selected.userData.editorName}`);
-  selectObject(null); refreshList(); scheduleAutosave();
+  selectObject(null); refreshList(); autosaveDirty = true; doAutosave();
 }
 
 function cloneSelected() {
@@ -664,7 +664,7 @@ function cloneSelected() {
     if (h) { clone.userData.helper = h; scene.add(h); }
   }
   scene.add(clone); objects.push(clone);
-  selectObject(clone); refreshList(); scheduleAutosave();
+  selectObject(clone); refreshList(); autosaveDirty = true; doAutosave();
 }
 
 // ── Transform modes ───────────────────────────────────
@@ -778,30 +778,51 @@ function captureThumb() {
   return t.toDataURL('image/webp', 0.7);
 }
 
-// ── Auto-save (every 30s + on every mutation) ─────────
-let autosaveTimer = null;
+// ── Auto-save ─────────────────────────────────────────
+// Throttled: saves at most once per 1s, but always saves the latest state.
+// Also saves immediately on tab hide / page unload.
+let autosaveTimer = null, autosaveDirty = false, autosaveRunning = false;
+
 function scheduleAutosave() {
-  if (autosaveTimer) clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(doAutosave, 3000); // 3s debounce
+  autosaveDirty = true;
+  if (autosaveTimer || autosaveRunning) return;
+  autosaveTimer = setTimeout(doAutosave, 1000);
 }
 
 async function doAutosave() {
-  const result = await exportScene();
-  if (!result) return;
-  const now = Date.now();
-  const db = await openDB();
-  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
-    id: AUTOSAVE_ID, name: '(autosave)', size: result.byteLength, format: 'glb',
-    data: result, thumbnail: captureThumb(), createdAt: now, accessedAt: now
-  }));
-  db.close();
+  autosaveTimer = null;
+  if (!autosaveDirty || autosaveRunning) return;
+  autosaveDirty = false;
+  autosaveRunning = true;
+  try {
+    const result = await exportScene();
+    if (!result) return;
+    const now = Date.now();
+    const db = await openDB();
+    await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+      id: AUTOSAVE_ID, name: '(autosave)', size: result.byteLength, format: 'glb',
+      data: result, thumbnail: captureThumb(), createdAt: now, accessedAt: now
+    }));
+    db.close();
+  } catch (e) { console.warn('Autosave failed:', e); }
+  autosaveRunning = false;
+  // If dirtied again during save, schedule another
+  if (autosaveDirty) autosaveTimer = setTimeout(doAutosave, 500);
 }
+
+// Save immediately when leaving the page
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && autosaveDirty) doAutosave();
+});
+window.addEventListener('beforeunload', () => {
+  if (autosaveDirty && objects.length) doAutosave();
+});
 
 // Hook autosave into mutations
 transformCtl.addEventListener('mouseUp', scheduleAutosave);
 
-// Periodic fallback autosave
-setInterval(() => { if (objects.length) doAutosave(); }, 30000);
+// Periodic fallback
+setInterval(() => { if (objects.length) { autosaveDirty = true; doAutosave(); } }, 15000);
 
 // ── Clear scene helper ────────────────────────────────
 function clearScene() {
@@ -840,11 +861,12 @@ async function tryAutoload() {
     const db = await openDB();
     const entry = await idbReq(db.transaction(STORE, 'readonly').objectStore(STORE).get(AUTOSAVE_ID));
     db.close();
-    if (entry && entry.data) {
+    if (entry && entry.data && entry.data.byteLength > 0) {
+      showStatus('Restoring scene...');
       await loadSceneFromGLB(entry.data, true);
-      showStatus('Restored autosaved scene');
+      showStatus(`Restored ${objects.length} object${objects.length !== 1 ? 's' : ''} from last session`);
     }
-  } catch { /* no autosave, start fresh */ }
+  } catch (e) { console.warn('Autoload failed:', e); }
 }
 
 // ── Save (Ctrl+S = save to browser) ───────────────────
