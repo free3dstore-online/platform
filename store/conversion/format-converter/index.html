@@ -171,6 +171,13 @@ async function loadFile(file) {
     const maxDim = Math.max(size.x, size.y, size.z);
     if (maxDim > 0) { obj.position.sub(center); obj.scale.multiplyScalar(2 / maxDim); }
 
+    // Lazy init: first time a file is loaded, init the preview now that workspace is visible
+    if (!renderer) {
+      document.getElementById('drop-area').style.display = 'none';
+      document.getElementById('workspace').classList.add('active');
+      initPreview(document.getElementById('src-preview'));
+    }
+
     scene.add(obj);
     loadedObject = obj;
 
@@ -182,9 +189,6 @@ async function loadFile(file) {
     document.getElementById('src-format').textContent = ext.toUpperCase();
 
     // Show workspace, hide drop area
-    document.getElementById('drop-area').style.display = 'none';
-    document.getElementById('workspace').classList.add('active');
-
     // Disable same-format button
     document.querySelectorAll('.fmt-btn').forEach(b => {
       const isSame = b.dataset.fmt === ext || (b.dataset.fmt === 'glb' && ext === 'gltf') || (b.dataset.fmt === 'gltf' && ext === 'glb');
@@ -286,8 +290,7 @@ dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classL
 dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag'));
 dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('drag'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
 
-// Init preview
-initPreview(document.getElementById('src-preview'));
+// Preview inits lazily on first file load (container must be visible for correct dimensions)
 </script>
 <script src="/related.js" defer></script>
 </body>

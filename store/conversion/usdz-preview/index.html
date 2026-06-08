@@ -15,14 +15,14 @@
 import*as THREE from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';import{GLTFExporter}from'three/addons/exporters/GLTFExporter.js';import{OBJLoader}from'three/addons/loaders/OBJLoader.js';import{STLLoader}from'three/addons/loaders/STLLoader.js';
 let model=null,scene,camera,renderer;
 function init(c){scene=new THREE.Scene();scene.background=new THREE.Color(0xf0f0f0);camera=new THREE.PerspectiveCamera(50,c.clientWidth/c.clientHeight,0.01,100);camera.position.set(2,1.5,2);renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(c.clientWidth,c.clientHeight);renderer.toneMapping=THREE.ACESFilmicToneMapping;c.appendChild(renderer.domElement);const ctrl=new OrbitControls(camera,renderer.domElement);ctrl.enableDamping=true;scene.add(new THREE.AmbientLight(0xffffff,0.5));const d=new THREE.DirectionalLight(0xffffff,1);d.position.set(4,6,4);scene.add(d);scene.add(new THREE.GridHelper(6,6,0xccc,0xddd));(function a(){requestAnimationFrame(a);ctrl.update();renderer.render(scene,camera)})()}
-async function loadFile(file){if(model){scene.remove(model);model=null}const ext=file.name.split('.').pop().toLowerCase(),url=URL.createObjectURL(file);
-try{let obj;if(ext==='glb'||ext==='gltf')obj=(await new GLTFLoader().loadAsync(url)).scene;else if(ext==='obj')obj=await new OBJLoader().loadAsync(url);else if(ext==='stl')obj=new THREE.Mesh(await new STLLoader().loadAsync(url),new THREE.MeshStandardMaterial({color:0x808080}));else return;
+async function loadFile(file){if(model&&scene){scene.remove(model);model=null}const ext=file.name.split('.').pop().toLowerCase(),url=URL.createObjectURL(file);
+try{document.getElementById('drop-area').style.display='none';document.getElementById('workspace').classList.add('active');if(!renderer)init(document.getElementById('preview'));let obj;if(ext==='glb'||ext==='gltf')obj=(await new GLTFLoader().loadAsync(url)).scene;else if(ext==='obj')obj=await new OBJLoader().loadAsync(url);else if(ext==='stl')obj=new THREE.Mesh(await new STLLoader().loadAsync(url),new THREE.MeshStandardMaterial({color:0x808080}));else return;
 const box=new THREE.Box3().setFromObject(obj),c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());const m=Math.max(s.x,s.y,s.z);if(m>0){obj.position.sub(c);obj.scale.multiplyScalar(2/m)}
-scene.add(obj);model=obj;document.getElementById('drop-area').style.display='none';document.getElementById('workspace').classList.add('active')}finally{URL.revokeObjectURL(url)}}
+scene.add(obj);model=obj}finally{URL.revokeObjectURL(url)}}
 document.getElementById('download-glb').addEventListener('click',async()=>{if(!model)return;const r=await new GLTFExporter().parseAsync(model,{binary:true});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([r]));a.download='model.glb';a.click()});
 document.getElementById('reset-btn').addEventListener('click',()=>{if(model){scene.remove(model);model=null}document.getElementById('drop-area').style.display='';document.getElementById('workspace').classList.remove('active')});
 document.getElementById('browse-btn').addEventListener('click',()=>document.getElementById('file-input').click());
 document.getElementById('file-input').addEventListener('change',e=>{if(e.target.files[0])loadFile(e.target.files[0])});
 const da=document.getElementById('drop-area');da.addEventListener('dragover',e=>e.preventDefault());da.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
-init(document.getElementById('preview'));
+// Preview inits lazily on first file load
 </script><script src="/related.js" defer></script></body></html>
