@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://free3dstore.online/sitemap.xml

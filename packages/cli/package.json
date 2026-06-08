@@ -1,0 +1,25 @@
+{
+  "name": "@free3dstore/cli",
+  "version": "0.1.0",
+  "description": "f3s — CLI for publishing 3D tools to free3dstore.online",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "f3s": "./dist/index.js"
+  },
+  "files": ["dist", "README.md"],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@free3dstore/compliance": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "tools": [
+    {
+      "id": "model-viewer",
+      "name": "3D Model Viewer",
+      "description": "Interactive 3D model viewer with orbit controls. Load GLB, OBJ, STL, FBX files. Wireframe, stats, screenshots.",
+      "icon": "👁️",
+      "iconBg": "#06b6d4",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
+      "id": "scene-composer",
+      "name": "Scene Composer",
+      "description": "Drag-and-drop Three.js scene builder. Add primitives, lights, cameras. Export as GLB.",
+      "icon": "🎬",
+      "iconBg": "#8b5cf6",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
+      "id": "mesh-optimizer",
+      "name": "Mesh Optimizer",
+      "description": "Polygon reduction and mesh simplification. Merge vertices, recompute normals. Before/after comparison.",
+      "icon": "⚡",
+      "iconBg": "#f59e0b",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
+      "id": "primitive-builder",
+      "name": "Primitive Builder",
+      "description": "Create geometric primitives: box, sphere, cylinder, torus, cone, plane. Customize dimensions and export.",
+      "icon": "🧊",
+      "iconBg": "#3b82f6",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
+      "id": "boolean-ops",
+      "name": "Boolean Operations",
+      "description": "Union, subtract, intersect 3D shapes. CSG operations in the browser. Export result as GLB/STL.",
+      "icon": "🔲",
+      "iconBg": "#10b981",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
+      "id": "mesh-inspector",
+      "name": "Mesh Inspector",
+      "description": "Vertex count, face stats, bounding box, wireframe view. Analyze mesh topology and quality.",
+      "icon": "🔍",
+      "iconBg": "#6366f1",
+      "category": "modeling",
+      "section": "modeling"
+    },
+    {
+      "id": "format-converter",
+      "name": "Format Converter",
+      "description": "Convert between GLB, OBJ, STL, FBX, GLTF. Drag-and-drop. Preserves materials and textures.",
+      "icon": "🔄",
+      "iconBg": "#06b6d4",
+      "category": "conversion",
+      "section": "conversion"
+    },
+    {
+      "id": "gltf-optimizer",
+      "name": "GLTF Optimizer",
+      "description": "Compress GLTF/GLB files with Draco and meshopt. Reduce file size up to 90%. Compare before/after.",
+      "icon": "📦",
+      "iconBg": "#10b981",
+      "category": "conversion",
+      "section": "conversion"
+    },
+    {
+      "id": "stl-repair",
+      "name": "STL Repair",
+      "description": "Fix non-manifold meshes, fill holes, orient normals. Prepare models for 3D printing.",
+      "icon": "🔧",
+      "iconBg": "#ef4444",
+      "category": "conversion",
+      "section": "conversion"
+    },
+    {
+      "id": "usdz-preview",
+      "name": "USDZ Preview",
+      "description": "Preview USDZ models for Apple AR Quick Look. Convert GLB to USDZ. Test AR placement.",
+      "icon": "📱",
+      "iconBg": "#8b5cf6",
+      "category": "conversion",
+      "section": "conversion"
+    },
+    {
+      "id": "texture-editor",
+      "name": "Texture Editor",
+      "description": "Resize, crop, adjust textures with live 3D preview. Color correction, channel editing, export.",
+      "icon": "🖼️",
+      "iconBg": "#f97316",
+      "category": "materials",
+      "section": "materials"
+    },
+    {
+      "id": "material-library",
+      "name": "Material Library",
+      "description": "Browse PBR materials: metals, woods, stones, fabrics. Live preview on 3D models. Download textures.",
+      "icon": "🎨",
+      "iconBg": "#ec4899",
+      "category": "materials",
+      "section": "materials"
+    },
+    {
+      "id": "normal-map-gen",
+      "name": "Normal Map Generator",
+      "description": "Generate normal maps from height maps or photos. Adjust strength, blur, invert. Real-time preview.",
+      "icon": "🗺️",
+      "iconBg": "#3b82f6",
+      "category": "materials",
+      "section": "materials"
+    },
+    {
+      "id": "hdri-viewer",
+      "name": "HDRI Viewer",
+      "description": "Preview HDR environment maps on 3D models. Adjust exposure, rotation. Free HDRI library.",
+      "icon": "🌅",
+      "iconBg": "#f59e0b",
+      "category": "materials",
+      "section": "materials"
+    },
+    {
+      "id": "uv-checker",
+      "name": "UV Checker",
+      "description": "UV mapping visualization with checker patterns. Detect stretching, overlaps, and seams.",
+      "icon": "🧩",
+      "iconBg": "#6366f1",
+      "category": "materials",
+      "section": "materials"
+    },
+    {
+      "id": "animation-mixer",
+      "name": "Animation Mixer",
+      "description": "Blend and preview skeletal animations. Adjust speed, loop modes. Import/export animation clips.",
+      "icon": "🏃",
+      "iconBg": "#06b6d4",
+      "category": "animation",
+      "section": "animation"
+    },
+    {
+      "id": "keyframe-editor",
+      "name": "Keyframe Editor",
+      "description": "Simple keyframe animation editor. Position, rotation, scale over time. Timeline with curves.",
+      "icon": "⏱️",
+      "iconBg": "#8b5cf6",
+      "category": "animation",
+      "section": "animation"
+    },
+    {
+      "id": "turntable-renderer",
+      "name": "Turntable Renderer",
+      "description": "Auto-rotate model and export as GIF or video. Adjust speed, lighting, background. Product showcase.",
+      "icon": "🎥",
+      "iconBg": "#10b981",
+      "category": "animation",
+      "section": "animation"
+    },
+    {
+      "id": "measurement-tool",
+      "name": "Measurement Tool",
+      "description": "Measure distances, angles, and volume on 3D models. Point-to-point, edge length, surface area.",
+      "icon": "📏",
+      "iconBg": "#f97316",
+      "category": "utilities",
+      "section": "utilities"
+    },
+    {
+      "id": "screenshot-studio",
+      "name": "Screenshot Studio",
+      "description": "Professional product shots with lighting presets. Transparent/solid backgrounds. 4K export.",
+      "icon": "📸",
+      "iconBg": "#ec4899",
+      "category": "utilities",
+      "section": "utilities"
+    },
+    {
+      "id": "model-comparison",
+      "name": "Model Comparison",
+      "description": "Side-by-side model comparison. Overlay, diff, sync cameras. Compare before/after optimization.",
+      "icon": "⚖️",
+      "iconBg": "#3b82f6",
+      "category": "utilities",
+      "section": "utilities"
+    }
+  ]
+}

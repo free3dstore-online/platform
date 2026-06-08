@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Model Viewer - Free3DStore</title>
+<meta name="description" content="Interactive 3D model viewer. Load GLB, OBJ, STL, FBX files. Orbit controls, wireframe, stats, screenshots.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
+a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
+.back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
+.container{max-width:1200px;margin:0 auto;padding:0 24px 24px}
+h1{font-size:28px;font-weight:800;margin-bottom:8px}
+.subtitle{color:#6b7280;margin-bottom:20px;font-size:15px}
+.viewer-wrap{position:relative;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:20px}
+#viewport{width:100%;height:500px;cursor:grab}
+#viewport:active{cursor:grabbing}
+.drop-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,182,212,.08);border:3px dashed #06b6d4;border-radius:12px;font-size:18px;font-weight:700;color:#06b6d4;pointer-events:none;opacity:0;transition:opacity .2s}
+.drop-overlay.active{opacity:1}
+.toolbar{display:flex;gap:8px;padding:12px 16px;background:#f9fafb;border-top:1px solid #e5e7eb;flex-wrap:wrap;align-items:center}
+.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
+.btn:hover{border-color:#06b6d4;color:#06b6d4}
+.btn.active{background:#06b6d4;color:#fff;border-color:#06b6d4}
+.btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
+.btn-primary:hover{background:#0891b2}
+.stats-bar{display:flex;gap:16px;padding:8px 16px;font-size:12px;color:#6b7280;background:#f9fafb;border-top:1px solid #e5e7eb}
+.stat{display:flex;align-items:center;gap:4px}
+.stat strong{color:#1a1a1a}
+.upload-zone{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:#6b7280}
+.upload-zone h2{font-size:20px;font-weight:700;color:#1a1a1a}
+.upload-zone p{font-size:14px}
+input[type="file"]{display:none}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:20px}
+.panel h2{font-size:16px;font-weight:700;margin-bottom:12px}
+.controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.controls-grid{grid-template-columns:1fr}}
+label{font-size:13px;font-weight:600;display:block;margin-bottom:4px;color:#4b5563}
+input[type="range"]{width:100%;accent-color:#06b6d4}
+select{width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;font-family:inherit}
+</style>
+</head>
+<body>
+<a class="back" href="/">← Free3DStore</a>
+<div class="container">
+<h1>3D Model Viewer</h1>
+<p class="subtitle">Load and inspect 3D models in your browser. Supports GLB, OBJ, STL, FBX.</p>
+
+<div class="viewer-wrap">
+  <div id="viewport">
+    <div class="upload-zone" id="upload-zone">
+      <h2>Drop a 3D model here</h2>
+      <p>or click to browse — GLB, OBJ, STL, FBX</p>
+      <button class="btn btn-primary" id="browse-btn">Browse Files</button>
+      <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
+    </div>
+  </div>
+  <div class="drop-overlay" id="drop-overlay">Drop your 3D model here</div>
+  <div class="toolbar" id="toolbar" style="display:none">
+    <button class="btn" id="wireframe-btn">Wireframe</button>
+    <button class="btn" id="normals-btn">Normals</button>
+    <button class="btn" id="grid-btn active">Grid</button>
+    <button class="btn" id="axes-btn">Axes</button>
+    <button class="btn" id="reset-btn">Reset Camera</button>
+    <button class="btn btn-primary" id="screenshot-btn">Screenshot</button>
+  </div>
+  <div class="stats-bar" id="stats-bar" style="display:none">
+    <div class="stat">Vertices: <strong id="stat-verts">0</strong></div>
+    <div class="stat">Faces: <strong id="stat-faces">0</strong></div>
+    <div class="stat">Format: <strong id="stat-format">—</strong></div>
+    <div class="stat">Size: <strong id="stat-size">—</strong></div>
+  </div>
+</div>
+
+<div class="panel" id="controls-panel" style="display:none">
+  <h2>Display Controls</h2>
+  <div class="controls-grid">
+    <div>
+      <label>Background</label>
+      <select id="bg-select">
+        <option value="#f0f0f0">Light Gray</option>
+        <option value="#1a1a1a">Dark</option>
+        <option value="#ffffff">White</option>
+        <option value="#000000">Black</option>
+        <option value="transparent">Transparent</option>
+      </select>
+    </div>
+    <div>
+      <label>Light Intensity</label>
+      <input type="range" id="light-range" min="0" max="3" step="0.1" value="1">
+    </div>
+    <div>
+      <label>Ambient Light</label>
+      <input type="range" id="ambient-range" min="0" max="2" step="0.1" value="0.5">
+    </div>
+    <div>
+      <label>Auto-Rotate Speed</label>
+      <input type="range" id="rotate-range" min="0" max="10" step="0.5" value="0">
+    </div>
+  </div>
+</div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+let scene, camera, renderer, controls, currentModel, grid, axes;
+let directionalLight, ambientLight;
+
+const viewport = document.getElementById('viewport');
+const uploadZone = document.getElementById('upload-zone');
+const toolbar = document.getElementById('toolbar');
+const statsBar = document.getElementById('stats-bar');
+const controlsPanel = document.getElementById('controls-panel');
+const dropOverlay = document.getElementById('drop-overlay');
+
+function initScene() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf0f0f0);
+
+  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
+  camera.position.set(2, 2, 2);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1;
+
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+
+  ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+  directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(5, 5, 5);
+  scene.add(directionalLight);
+
+  grid = new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0);
+  scene.add(grid);
+  axes = new THREE.AxesHelper(2);
+  axes.visible = false;
+  scene.add(axes);
+
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    camera.aspect = viewport.clientWidth / viewport.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+  });
+}
+
+function computeStats(object) {
+  let vertices = 0, faces = 0;
+  object.traverse(child => {
+    if (child.isMesh && child.geometry) {
+      vertices += child.geometry.attributes.position?.count || 0;
+      faces += child.geometry.index
+        ? child.geometry.index.count / 3
+        : (child.geometry.attributes.position?.count || 0) / 3;
+    }
+  });
+  return { vertices, faces: Math.floor(faces) };
+}
+
+function centerAndScale(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = maxDim > 0 ? 2 / maxDim : 1;
+  object.position.sub(center);
+  object.scale.multiplyScalar(scale);
+}
+
+async function loadFile(file) {
+  if (currentModel) { scene.remove(currentModel); currentModel = null; }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const url = URL.createObjectURL(file);
+
+  try {
+    let object;
+    switch (ext) {
+      case 'glb': case 'gltf': {
+        const gltf = await new GLTFLoader().loadAsync(url);
+        object = gltf.scene;
+        break;
+      }
+      case 'obj': object = await new OBJLoader().loadAsync(url); break;
+      case 'stl': {
+        const geo = await new STLLoader().loadAsync(url);
+        object = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x808080 }));
+        break;
+      }
+      case 'fbx': object = await new FBXLoader().loadAsync(url); break;
+      default: alert('Unsupported format: ' + ext); return;
+    }
+
+    centerAndScale(object);
+    scene.add(object);
+    currentModel = object;
+
+    const stats = computeStats(object);
+    document.getElementById('stat-verts').textContent = stats.vertices.toLocaleString();
+    document.getElementById('stat-faces').textContent = stats.faces.toLocaleString();
+    document.getElementById('stat-format').textContent = ext.toUpperCase();
+    document.getElementById('stat-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+    uploadZone.style.display = 'none';
+    if (!viewport.contains(renderer.domElement)) viewport.appendChild(renderer.domElement);
+    toolbar.style.display = 'flex';
+    statsBar.style.display = 'flex';
+    controlsPanel.style.display = 'block';
+
+    controls.reset();
+    camera.position.set(2, 2, 2);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// File input
+document.getElementById('browse-btn').addEventListener('click', () => document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+// Drag and drop
+viewport.addEventListener('dragover', e => { e.preventDefault(); dropOverlay.classList.add('active'); });
+viewport.addEventListener('dragleave', () => dropOverlay.classList.remove('active'));
+viewport.addEventListener('drop', e => {
+  e.preventDefault();
+  dropOverlay.classList.remove('active');
+  if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+});
+
+// Toolbar buttons
+document.getElementById('wireframe-btn').addEventListener('click', function() {
+  this.classList.toggle('active');
+  const wire = this.classList.contains('active');
+  currentModel?.traverse(c => { if (c.isMesh) c.material.wireframe = wire; });
+});
+
+document.getElementById('normals-btn').addEventListener('click', function() {
+  this.classList.toggle('active');
+  // Toggle vertex normals helper
+  if (this.classList.contains('active')) {
+    currentModel?.traverse(c => {
+      if (c.isMesh) {
+        const helper = new THREE.VertexNormalsHelper?.(c, 0.05, 0x06b6d4);
+        if (helper) { helper.name = '__normals'; scene.add(helper); }
+      }
+    });
+  } else {
+    const helpers = scene.children.filter(c => c.name === '__normals');
+    helpers.forEach(h => { scene.remove(h); h.dispose?.(); });
+  }
+});
+
+document.getElementById('grid-btn').addEventListener('click', function() {
+  this.classList.toggle('active');
+  grid.visible = !grid.visible;
+});
+
+document.getElementById('axes-btn').addEventListener('click', function() {
+  this.classList.toggle('active');
+  axes.visible = this.classList.contains('active');
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  controls.reset();
+  camera.position.set(2, 2, 2);
+});
+
+document.getElementById('screenshot-btn').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const link = document.createElement('a');
+  link.download = 'screenshot.png';
+  link.href = renderer.domElement.toDataURL('image/png');
+  link.click();
+});
+
+// Controls
+document.getElementById('bg-select').addEventListener('change', function() {
+  if (this.value === 'transparent') {
+    scene.background = null;
+    renderer.setClearColor(0x000000, 0);
+  } else {
+    scene.background = new THREE.Color(this.value);
+  }
+});
+
+document.getElementById('light-range').addEventListener('input', function() {
+  directionalLight.intensity = parseFloat(this.value);
+});
+
+document.getElementById('ambient-range').addEventListener('input', function() {
+  ambientLight.intensity = parseFloat(this.value);
+});
+
+document.getElementById('rotate-range').addEventListener('input', function() {
+  controls.autoRotate = parseFloat(this.value) > 0;
+  controls.autoRotateSpeed = parseFloat(this.value);
+});
+
+initScene();
+</script>
+<script src="/related.js" defer></script>
+</body>
+</html>
