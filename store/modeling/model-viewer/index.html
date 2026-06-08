@@ -60,7 +60,7 @@ select{width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:6px;font-si
   <div class="toolbar" id="toolbar" style="display:none">
     <button class="btn" id="wireframe-btn">Wireframe</button>
     <button class="btn" id="normals-btn">Normals</button>
-    <button class="btn" id="grid-btn active">Grid</button>
+    <button class="btn active" id="grid-btn">Grid</button>
     <button class="btn" id="axes-btn">Axes</button>
     <button class="btn" id="reset-btn">Reset Camera</button>
     <button class="btn btn-primary" id="screenshot-btn">Screenshot</button>
@@ -117,6 +117,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { VertexNormalsHelper } from 'three/addons/helpers/VertexNormalsHelper.js';
 
 let scene, camera, renderer, controls, currentModel, grid, axes;
 let directionalLight, ambientLight;
@@ -267,8 +268,9 @@ document.getElementById('normals-btn').addEventListener('click', function() {
   if (this.classList.contains('active')) {
     currentModel?.traverse(c => {
       if (c.isMesh) {
-        const helper = new THREE.VertexNormalsHelper?.(c, 0.05, 0x06b6d4);
-        if (helper) { helper.name = '__normals'; scene.add(helper); }
+        const helper = new VertexNormalsHelper(c, 0.05, 0x06b6d4);
+        helper.name = '__normals';
+        scene.add(helper);
       }
     });
   } else {
