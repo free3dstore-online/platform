@@ -1,129 +1,60 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>HDRI Viewer - Free3DStore</title>
-<meta name="description" content="Preview HDR environment maps on 3D models. Adjust exposure, rotation, blur. Browse free HDRI library.">
+<meta name="description" content="Preview environment maps on 3D models. Built-in procedural sky environments. Adjust exposure and rotation.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
-a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
-.back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
-.container{max-width:900px;margin:0 auto;padding:0 24px 24px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-.subtitle{color:#6b7280;margin-bottom:24px;font-size:15px;line-height:1.6}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
-.panel h2{font-size:16px;font-weight:700;margin-bottom:16px}
-.viewport{width:100%;height:400px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-container{width:100%;height:100%}
-.drop-zone{display:flex;flex-direction:column;align-items:center;gap:12px;color:#6b7280;cursor:pointer}
-.drop-zone h3{font-size:18px;font-weight:700;color:#1a1a1a}
-.drop-zone p{font-size:14px}
-.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
-.btn:hover{border-color:#06b6d4;color:#06b6d4}
-.btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
-.btn-primary:hover{background:#0891b2}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-input[type="file"]{display:none}
-</style>
-</head>
-<body>
-<a class="back" href="/">← Free3DStore</a>
-<div class="container">
-<h1>🌅 HDRI Viewer</h1>
-<p class="subtitle">Preview HDR environment maps on 3D models. Adjust exposure, rotation, blur. Browse free HDRI library.</p>
-
-<div class="viewport" id="viewport">
-  <div class="drop-zone" id="drop-zone">
-    <h3>Drop a 3D model here</h3>
-    <p>Supports GLB, OBJ, STL, FBX</p>
-    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
-    <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
-  </div>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Manrope',system-ui,sans-serif;background:#111;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column}a{color:#06b6d4;text-decoration:none}.topbar{display:flex;align-items:center;padding:8px 16px;background:#1a1a1a;border-bottom:1px solid #333;gap:12px;flex-shrink:0}.topbar a{font-size:13px;color:#888}.topbar h1{font-size:15px;font-weight:700}.topbar .spacer{flex:1}.btn{padding:8px 16px;border:1px solid #444;border-radius:6px;background:#2a2a2a;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:#e0e0e0}.btn:hover{border-color:#06b6d4;color:#06b6d4}.btn-accent{background:#06b6d4;color:#fff;border-color:#06b6d4}input[type="file"]{display:none}.workspace{display:flex;flex:1;overflow:hidden}.sidebar{width:260px;background:#1a1a1a;border-right:1px solid #333;overflow-y:auto;padding:12px;flex-shrink:0}.viewport{flex:1;position:relative;overflow:hidden}#canvas{width:100%;height:100%;display:block}.section{margin-bottom:16px}.section h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px}.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}.env-btn{padding:8px;text-align:center;background:#222;border:1px solid #333;border-radius:4px;cursor:pointer;font:inherit;font-size:11px;color:#aaa}.env-btn:hover{border-color:#06b6d4;color:#06b6d4}.env-btn.active{border-color:#06b6d4;background:rgba(6,182,212,.1);color:#06b6d4}.range-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}.range-row label{font-size:11px;color:#888;width:65px;flex-shrink:0}.range-row input[type=range]{flex:1;accent-color:#06b6d4}.range-row .val{font-size:11px;width:30px;text-align:right;color:#666}.shape-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}.shape-btn{padding:6px;text-align:center;background:#222;border:1px solid #333;border-radius:4px;cursor:pointer;font:inherit;font-size:10px;color:#aaa}.shape-btn:hover{border-color:#06b6d4}.shape-btn.active{border-color:#06b6d4;color:#06b6d4}</style>
+</head><body>
+<div class="topbar"><a href="/">← Free3DStore</a><h1>HDRI Viewer</h1><span class="spacer"></span><button class="btn" id="load-model">Load Model</button><input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl"></div>
+<div class="workspace"><div class="sidebar">
+<div class="section"><h3>Environment</h3><div class="env-grid">
+<button class="env-btn active" data-env="sunset">Sunset</button><button class="env-btn" data-env="studio">Studio</button>
+<button class="env-btn" data-env="night">Night</button><button class="env-btn" data-env="overcast">Overcast</button>
+<button class="env-btn" data-env="dawn">Dawn</button><button class="env-btn" data-env="noon">Noon</button>
+</div></div>
+<div class="section"><h3>Settings</h3>
+<div class="range-row"><label>Exposure</label><input type="range" id="r-exp" min="0.2" max="4" step="0.1" value="1"><span class="val" id="v-exp">1.0</span></div>
+<div class="range-row"><label>Env Rotate</label><input type="range" id="r-rot" min="0" max="360" step="1" value="0"><span class="val" id="v-rot">0</span></div>
+<div class="range-row"><label>Metalness</label><input type="range" id="r-metal" min="0" max="1" step="0.01" value="0.9"><span class="val" id="v-metal">0.90</span></div>
+<div class="range-row"><label>Roughness</label><input type="range" id="r-rough" min="0" max="1" step="0.01" value="0.1"><span class="val" id="v-rough">0.10</span></div>
 </div>
-
-<div class="panel">
-  <h2>How it works</h2>
-  <p style="color:#6b7280;font-size:14px;line-height:1.7">
-    Drop or browse a 3D model file to get started. Preview HDR environment maps on 3D models. Adjust exposure, rotation, blur. Browse free HDRI library.
-    Everything runs in your browser using Three.js — your files never leave your device.
-  </p>
-</div>
-</div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
-</script>
+<div class="section"><h3>Preview Shape</h3><div class="shape-grid">
+<button class="shape-btn active" data-shape="sphere">Sphere</button><button class="shape-btn" data-shape="torus">Torus</button><button class="shape-btn" data-shape="knot">Knot</button>
+<button class="shape-btn" data-shape="box">Box</button><button class="shape-btn" data-shape="cylinder">Cylinder</button><button class="shape-btn" data-shape="teapot">Teapot</button>
+</div></div>
+</div><div class="viewport"><canvas id="canvas"></canvas></div></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import*as THREE from'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+import{GLTFLoader}from'three/addons/loaders/GLTFLoader.js';import{OBJLoader}from'three/addons/loaders/OBJLoader.js';import{STLLoader}from'three/addons/loaders/STLLoader.js';
+const canvas=document.getElementById('canvas'),vp=canvas.parentElement;
+const scene=new THREE.Scene();const camera=new THREE.PerspectiveCamera(45,vp.clientWidth/vp.clientHeight,0.01,100);camera.position.set(2,1.5,2);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setSize(vp.clientWidth,vp.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+const orbit=new OrbitControls(camera,canvas);orbit.enableDamping=true;orbit.autoRotate=true;orbit.autoRotateSpeed=1;
+const mat=new THREE.MeshStandardMaterial({color:0xffffff,metalness:0.9,roughness:0.1,envMapIntensity:1});
+let mesh=new THREE.Mesh(new THREE.SphereGeometry(0.7,64,48),mat);mesh.position.y=0.7;scene.add(mesh);
+scene.add(new THREE.GridHelper(6,6,0x333,0x222));
 
-const viewport = document.getElementById('viewport');
-const dropZone = document.getElementById('drop-zone');
-let scene, camera, renderer, controls;
+const envColors={sunset:{top:0x1a0a2e,mid:0xff6b35,bot:0xf7dc6f},studio:{top:0x888888,mid:0xcccccc,bot:0x888888},night:{top:0x0a0a2e,mid:0x1a1a4e,bot:0x0a0a1e},overcast:{top:0x8899aa,mid:0xaabbcc,bot:0x889999},dawn:{top:0x1a1a4e,mid:0xff9999,bot:0xffddaa},noon:{top:0x4499dd,mid:0xaaddff,bot:0xeeffff}};
+function makeEnvMap(name){const c=envColors[name]||envColors.sunset;const size=256;const data=new Uint8Array(size*size*4);
+for(let y=0;y<size;y++){const t=y/size;let r,g,b;if(t<0.5){const f=t*2;r=((c.top>>16&0xff)*(1-f)+(c.mid>>16&0xff)*f);g=((c.top>>8&0xff)*(1-f)+(c.mid>>8&0xff)*f);b=((c.top&0xff)*(1-f)+(c.mid&0xff)*f)}else{const f=(t-0.5)*2;r=((c.mid>>16&0xff)*(1-f)+(c.bot>>16&0xff)*f);g=((c.mid>>8&0xff)*(1-f)+(c.bot>>8&0xff)*f);b=((c.mid&0xff)*(1-f)+(c.bot&0xff)*f)}
+for(let x=0;x<size;x++){const i=(y*size+x)*4;data[i]=r;data[i+1]=g;data[i+2]=b;data[i+3]=255}}
+const tex=new THREE.DataTexture(data,size,size);tex.mapping=THREE.EquirectangularReflectionMapping;tex.needsUpdate=true;return tex}
 
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
-  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
-  camera.position.set(2, 2, 2);
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5, 5, 5);
-  scene.add(dir);
-  scene.add(new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0));
-  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-  animate();
-  window.addEventListener('resize', () => {
-    camera.aspect = viewport.clientWidth / viewport.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  });
-}
+function setEnv(name){const tex=makeEnvMap(name);scene.environment=tex;scene.background=tex}
+setEnv('sunset');
 
-async function loadFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-  try {
-    let obj;
-    if (ext === 'glb' || ext === 'gltf') { const g = await new GLTFLoader().loadAsync(url); obj = g.scene; }
-    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
-    else if (ext === 'stl') { const geo = await new STLLoader().loadAsync(url); obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x808080})); }
-    else { alert('Unsupported: ' + ext); return; }
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const s = Math.max(size.x, size.y, size.z);
-    const scale = s > 0 ? 2 / s : 1;
-    obj.position.sub(center);
-    obj.scale.multiplyScalar(scale);
-    scene.add(obj);
-    dropZone.style.display = 'none';
-    viewport.appendChild(renderer.domElement);
-  } finally { URL.revokeObjectURL(url); }
-}
-
-document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
-viewport.addEventListener('dragover', e => e.preventDefault());
-viewport.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-init();
-</script>
-<script src="/related.js" defer></script>
-</body>
-</html>
+const shapes={sphere:()=>new THREE.SphereGeometry(0.7,64,48),torus:()=>new THREE.TorusGeometry(0.5,0.2,32,64),knot:()=>new THREE.TorusKnotGeometry(0.4,0.15,128,32),box:()=>new THREE.BoxGeometry(1,1,1),cylinder:()=>new THREE.CylinderGeometry(0.4,0.4,1,32),teapot:()=>new THREE.IcosahedronGeometry(0.6,3)};
+document.querySelectorAll('.env-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.env-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');setEnv(b.dataset.env)}));
+document.querySelectorAll('.shape-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.shape-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');const g=shapes[b.dataset.shape]();mesh.geometry.dispose();mesh.geometry=g}));
+document.getElementById('r-exp').addEventListener('input',function(){renderer.toneMappingExposure=+this.value;document.getElementById('v-exp').textContent=(+this.value).toFixed(1)});
+document.getElementById('r-rot').addEventListener('input',function(){scene.rotation.y=+this.value*Math.PI/180;document.getElementById('v-rot').textContent=this.value});
+document.getElementById('r-metal').addEventListener('input',function(){mat.metalness=+this.value;document.getElementById('v-metal').textContent=(+this.value).toFixed(2)});
+document.getElementById('r-rough').addEventListener('input',function(){mat.roughness=+this.value;document.getElementById('v-rough').textContent=(+this.value).toFixed(2)});
+document.getElementById('load-model').addEventListener('click',()=>document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;const ext=f.name.split('.').pop().toLowerCase(),url=URL.createObjectURL(f);
+try{let obj;if(ext==='glb'||ext==='gltf')obj=(await new GLTFLoader().loadAsync(url)).scene;else if(ext==='obj')obj=await new OBJLoader().loadAsync(url);else if(ext==='stl')obj=new THREE.Mesh(await new STLLoader().loadAsync(url),mat.clone());else return;
+scene.remove(mesh);const box=new THREE.Box3().setFromObject(obj),c=box.getCenter(new THREE.Vector3()),s=box.getSize(new THREE.Vector3());const m=Math.max(s.x,s.y,s.z);if(m>0){obj.position.sub(c);obj.scale.multiplyScalar(1.4/m)}
+obj.traverse(ch=>{if(ch.isMesh){ch.material=mat.clone()}});mesh=obj;scene.add(mesh)}finally{URL.revokeObjectURL(url)}});
+(function anim(){requestAnimationFrame(anim);orbit.update();renderer.render(scene,camera)})();
+window.addEventListener('resize',()=>{camera.aspect=vp.clientWidth/vp.clientHeight;camera.updateProjectionMatrix();renderer.setSize(vp.clientWidth,vp.clientHeight)});
+</script><script src="/related.js" defer></script></body></html>

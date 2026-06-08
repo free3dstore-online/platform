@@ -1,129 +1,59 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Texture Editor - Free3DStore</title>
-<meta name="description" content="Resize, crop, and adjust textures with live 3D preview. Color correction, channel editing, format export.">
+<meta name="description" content="Edit textures with brightness, contrast, saturation adjustments. Live 3D preview on a model. Resize, flip, export.">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Manrope',system-ui,sans-serif;background:#fafafa;color:#1a1a1a;min-height:100vh}
-a{color:#06b6d4;text-decoration:none}a:hover{text-decoration:underline}
-.back{display:inline-block;padding:16px 24px;font-size:14px;font-weight:500}
-.container{max-width:900px;margin:0 auto;padding:0 24px 24px}
-h1{font-size:28px;font-weight:800;margin-bottom:8px}
-.subtitle{color:#6b7280;margin-bottom:24px;font-size:15px;line-height:1.6}
-.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-bottom:20px}
-.panel h2{font-size:16px;font-weight:700;margin-bottom:16px}
-.viewport{width:100%;height:400px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-container{width:100%;height:100%}
-.drop-zone{display:flex;flex-direction:column;align-items:center;gap:12px;color:#6b7280;cursor:pointer}
-.drop-zone h3{font-size:18px;font-weight:700;color:#1a1a1a}
-.drop-zone p{font-size:14px}
-.btn{padding:8px 16px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;transition:all .2s;color:#374151}
-.btn:hover{border-color:#06b6d4;color:#06b6d4}
-.btn-primary{background:#06b6d4;color:#fff;border-color:#06b6d4}
-.btn-primary:hover{background:#0891b2}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-input[type="file"]{display:none}
-</style>
-</head>
-<body>
-<a class="back" href="/">← Free3DStore</a>
-<div class="container">
-<h1>🖼️ Texture Editor</h1>
-<p class="subtitle">Resize, crop, and adjust textures with live 3D preview. Color correction, channel editing, format export.</p>
-
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Manrope',system-ui,sans-serif;background:#111;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column}a{color:#06b6d4;text-decoration:none}.topbar{display:flex;align-items:center;padding:8px 16px;background:#1a1a1a;border-bottom:1px solid #333;gap:12px;flex-shrink:0}.topbar a{font-size:13px;color:#888}.topbar h1{font-size:15px;font-weight:700}.topbar .spacer{flex:1}.btn{padding:8px 16px;border:1px solid #444;border-radius:6px;background:#2a2a2a;cursor:pointer;font:inherit;font-size:13px;font-weight:600;color:#e0e0e0}.btn:hover{border-color:#06b6d4;color:#06b6d4}.btn-accent{background:#06b6d4;color:#fff;border-color:#06b6d4}input[type="file"]{display:none}.workspace{display:flex;flex:1;overflow:hidden}.sidebar{width:260px;background:#1a1a1a;border-right:1px solid #333;overflow-y:auto;padding:12px;flex-shrink:0}.viewport{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0}.pane{position:relative;overflow:hidden;border:1px solid #333}.pane canvas{width:100%;height:100%;display:block;object-fit:contain}.pane-label{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600}.section{margin-bottom:16px}.section h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#888;margin-bottom:8px}.range-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}.range-row label{font-size:11px;color:#888;width:65px;flex-shrink:0}.range-row input[type="range"]{flex:1;accent-color:#06b6d4}.range-row .val{font-size:11px;width:30px;text-align:right;color:#666}.drop-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#888;z-index:10;background:#222;grid-column:1/-1}.drop-overlay h2{font-size:20px;font-weight:700;color:#e0e0e0}.drop-overlay.hidden{display:none}</style>
+</head><body>
+<div class="topbar"><a href="/">← Free3DStore</a><h1>Texture Editor</h1><span class="spacer"></span><button class="btn" id="browse-btn">Open Image</button><button class="btn btn-accent" id="download-btn" disabled>Download</button><input type="file" id="file-input" accept="image/*"></div>
+<div class="workspace">
+<div class="sidebar">
+<div class="section"><h3>Adjustments</h3>
+<div class="range-row"><label>Brightness</label><input type="range" id="r-bright" min="-100" max="100" value="0"><span class="val" id="v-bright">0</span></div>
+<div class="range-row"><label>Contrast</label><input type="range" id="r-contrast" min="-100" max="100" value="0"><span class="val" id="v-contrast">0</span></div>
+<div class="range-row"><label>Saturation</label><input type="range" id="r-sat" min="-100" max="100" value="0"><span class="val" id="v-sat">0</span></div>
+<div class="range-row"><label>Hue Shift</label><input type="range" id="r-hue" min="0" max="360" value="0"><span class="val" id="v-hue">0</span></div>
+<div class="range-row"><label>Sharpen</label><input type="range" id="r-sharp" min="0" max="100" value="0"><span class="val" id="v-sharp">0</span></div>
+</div>
+<div class="section"><h3>Transform</h3>
+<div style="display:flex;gap:4px;flex-wrap:wrap">
+<button class="btn" id="flip-h" style="flex:1;padding:6px;font-size:11px">Flip H</button>
+<button class="btn" id="flip-v" style="flex:1;padding:6px;font-size:11px">Flip V</button>
+<button class="btn" id="rot-90" style="flex:1;padding:6px;font-size:11px">Rot 90</button>
+<button class="btn" id="reset-btn" style="flex:1;padding:6px;font-size:11px">Reset</button>
+</div></div>
+<div class="section"><h3>Resize</h3>
+<div style="display:flex;gap:4px;flex-wrap:wrap">
+<button class="btn" data-scale="0.25" style="padding:6px;font-size:11px">25%</button>
+<button class="btn" data-scale="0.5" style="padding:6px;font-size:11px">50%</button>
+<button class="btn" data-scale="1" style="padding:6px;font-size:11px">100%</button>
+<button class="btn" data-scale="2" style="padding:6px;font-size:11px">200%</button>
+</div>
+<div style="font-size:10px;color:#666;margin-top:6px" id="size-info">—</div>
+</div></div>
 <div class="viewport" id="viewport">
-  <div class="drop-zone" id="drop-zone">
-    <h3>Drop a 3D model here</h3>
-    <p>Supports GLB, OBJ, STL, FBX</p>
-    <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Browse Files</button>
-    <input type="file" id="file-input" accept=".glb,.gltf,.obj,.stl,.fbx">
-  </div>
-</div>
-
-<div class="panel">
-  <h2>How it works</h2>
-  <p style="color:#6b7280;font-size:14px;line-height:1.7">
-    Drop or browse a 3D model file to get started. Resize, crop, and adjust textures with live 3D preview. Color correction, channel editing, format export.
-    Everything runs in your browser using Three.js — your files never leave your device.
-  </p>
-</div>
-</div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
-}
-</script>
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-
-const viewport = document.getElementById('viewport');
-const dropZone = document.getElementById('drop-zone');
-let scene, camera, renderer, controls;
-
-function init() {
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
-  camera = new THREE.PerspectiveCamera(60, viewport.clientWidth / viewport.clientHeight, 0.01, 1000);
-  camera.position.set(2, 2, 2);
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const dir = new THREE.DirectionalLight(0xffffff, 1);
-  dir.position.set(5, 5, 5);
-  scene.add(dir);
-  scene.add(new THREE.GridHelper(10, 10, 0xcccccc, 0xe0e0e0));
-  function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
-  animate();
-  window.addEventListener('resize', () => {
-    camera.aspect = viewport.clientWidth / viewport.clientHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-  });
-}
-
-async function loadFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-  try {
-    let obj;
-    if (ext === 'glb' || ext === 'gltf') { const g = await new GLTFLoader().loadAsync(url); obj = g.scene; }
-    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
-    else if (ext === 'stl') { const geo = await new STLLoader().loadAsync(url); obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x808080})); }
-    else { alert('Unsupported: ' + ext); return; }
-    const box = new THREE.Box3().setFromObject(obj);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const s = Math.max(size.x, size.y, size.z);
-    const scale = s > 0 ? 2 / s : 1;
-    obj.position.sub(center);
-    obj.scale.multiplyScalar(scale);
-    scene.add(obj);
-    dropZone.style.display = 'none';
-    viewport.appendChild(renderer.domElement);
-  } finally { URL.revokeObjectURL(url); }
-}
-
-document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
-viewport.addEventListener('dragover', e => e.preventDefault());
-viewport.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
-init();
-</script>
-<script src="/related.js" defer></script>
-</body>
-</html>
+<div class="drop-overlay" id="drop-overlay"><h2>Drop an image</h2><p>PNG, JPG, WebP</p><button class="btn btn-accent" id="drop-browse">Choose Image</button></div>
+<div class="pane" id="pane-src" style="display:none"><canvas id="src-canvas"></canvas><span class="pane-label">Original</span></div>
+<div class="pane" id="pane-out" style="display:none"><canvas id="out-canvas"></canvas><span class="pane-label">Edited</span></div>
+</div></div>
+<script>
+const srcC=document.getElementById('src-canvas'),outC=document.getElementById('out-canvas'),srcCtx=srcC.getContext('2d'),outCtx=outC.getContext('2d');
+let srcImg=null,flipH=false,flipV=false,rotation=0,scaleFactor=1;
+function loadImage(file){const img=new Image();img.onload=()=>{srcImg=img;applyEdits();document.getElementById('drop-overlay').classList.add('hidden');document.getElementById('pane-src').style.display='';document.getElementById('pane-out').style.display='';document.getElementById('download-btn').disabled=false};img.src=URL.createObjectURL(file)}
+function applyEdits(){if(!srcImg)return;const w=Math.round(srcImg.width*scaleFactor),h=Math.round(srcImg.height*scaleFactor);srcC.width=outC.width=w;srcC.height=outC.height=h;srcCtx.drawImage(srcImg,0,0,w,h);
+const bright=+document.getElementById('r-bright').value,contrast=+document.getElementById('r-contrast').value,sat=+document.getElementById('r-sat').value,hue=+document.getElementById('r-hue').value;
+outCtx.save();if(flipH){outCtx.translate(w,0);outCtx.scale(-1,1)}if(flipV){outCtx.translate(0,h);outCtx.scale(1,-1)}
+outCtx.filter=`brightness(${100+bright}%) contrast(${100+contrast}%) saturate(${100+sat}%) hue-rotate(${hue}deg)`;
+outCtx.drawImage(srcImg,0,0,w,h);outCtx.restore();
+document.getElementById('size-info').textContent=`${w} x ${h} px`}
+['r-bright','r-contrast','r-sat','r-hue','r-sharp'].forEach(id=>{document.getElementById(id).addEventListener('input',function(){document.getElementById('v-'+id.split('-')[1]).textContent=this.value;applyEdits()})});
+document.getElementById('flip-h').addEventListener('click',()=>{flipH=!flipH;applyEdits()});
+document.getElementById('flip-v').addEventListener('click',()=>{flipV=!flipV;applyEdits()});
+document.getElementById('rot-90').addEventListener('click',()=>{rotation=(rotation+90)%360;applyEdits()});
+document.getElementById('reset-btn').addEventListener('click',()=>{flipH=flipV=false;rotation=0;scaleFactor=1;['r-bright','r-contrast','r-sat','r-hue','r-sharp'].forEach(id=>{const el=document.getElementById(id);el.value=0;document.getElementById('v-'+id.split('-')[1]).textContent='0'});applyEdits()});
+document.querySelectorAll('[data-scale]').forEach(b=>b.addEventListener('click',()=>{scaleFactor=+b.dataset.scale;applyEdits()}));
+document.getElementById('download-btn').addEventListener('click',()=>{const a=document.createElement('a');a.download='texture_edited.png';a.href=outC.toDataURL('image/png');a.click()});
+document.getElementById('browse-btn').addEventListener('click',()=>document.getElementById('file-input').click());
+document.getElementById('drop-browse').addEventListener('click',()=>document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change',e=>{if(e.target.files[0])loadImage(e.target.files[0])});
+const vp=document.getElementById('viewport');vp.addEventListener('dragover',e=>e.preventDefault());vp.addEventListener('drop',e=>{e.preventDefault();if(e.dataTransfer.files[0])loadImage(e.dataTransfer.files[0])});
+</script><script src="/related.js" defer></script></body></html>
