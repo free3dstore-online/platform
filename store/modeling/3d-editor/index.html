@@ -137,8 +137,9 @@ input[type="checkbox"]{accent-color:var(--accent)}
   <div class="tb-group">
     <button class="tb-btn" id="btn-new" title="New Scene (Ctrl+N)"><svg viewBox="0 0 16 16"><path d="M3 1h7l3 3v9a2 2 0 01-2 2H3a2 2 0 01-2-2V3a2 2 0 012-2z"/></svg></button>
     <button class="tb-btn" id="btn-open" title="Open (Ctrl+O)"><svg viewBox="0 0 16 16"><path d="M1 4v8a2 2 0 002 2h10l2-6H5L3 4z"/><path d="M3 2h4l2 2h4v2H3z"/></svg></button>
-    <button class="tb-btn" id="btn-save" title="Save (Ctrl+S)"><svg viewBox="0 0 16 16"><path d="M2 1h10l3 3v9a2 2 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2z"/><rect x="4" y="1" width="7" height="5" rx="1" fill="var(--dark)"/><rect x="4" y="9" width="8" height="5" rx="1" fill="var(--dark)"/></svg></button>
-    <button class="tb-btn" id="btn-save-local" title="Save to Browser"><svg viewBox="0 0 16 16"><path d="M8 1v8M4 6l4 4 4-4"/><rect x="1" y="11" width="14" height="4" rx="1"/></svg></button>
+    <button class="tb-btn" id="btn-save" title="Save (Ctrl+S) — saves to browser"><svg viewBox="0 0 16 16"><path d="M2 1h10l3 3v9a2 2 0 01-2 2H2a2 2 0 01-2-2V3a2 2 0 012-2z"/><rect x="4" y="1" width="7" height="5" rx="1" fill="var(--dark)"/><rect x="4" y="9" width="8" height="5" rx="1" fill="var(--dark)"/></svg></button>
+    <button class="tb-btn" id="btn-save-local" title="Save As... — named snapshot"><svg viewBox="0 0 16 16"><path d="M8 1v8M4 6l4 4 4-4"/><rect x="1" y="11" width="14" height="4" rx="1"/></svg></button>
+    <button class="tb-btn" id="btn-export-disk" title="Export to Disk (Ctrl+Shift+S)"><svg viewBox="0 0 16 16"><path d="M8 1v6M4 4l4 4 4-4" fill="none" stroke="var(--text)" stroke-width="1.5"/><path d="M2 10v3a2 2 0 002 2h8a2 2 0 002-2v-3" fill="none" stroke="var(--text)" stroke-width="1.5"/></svg></button>
   </div>
   <div class="tb-group">
     <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 16 16"><path d="M5 3L1 7l4 4" fill="none" stroke="var(--text)" stroke-width="2"/><path d="M2 7h8a4 4 0 014 4v0" fill="none" stroke="var(--text)" stroke-width="2"/></svg></button>
@@ -481,6 +482,7 @@ function addObject(obj, type) {
   selectObject(obj);
   refreshList();
   showStatus(`Created ${obj.userData.editorName}`);
+  scheduleAutosave();
 }
 
 const primFactory = {
@@ -645,7 +647,7 @@ function deleteSelected() {
   scene.remove(selected); if (selected.userData.helper) scene.remove(selected.userData.helper);
   objects.splice(objects.indexOf(selected), 1);
   showStatus(`Deleted ${selected.userData.editorName}`);
-  selectObject(null); refreshList();
+  selectObject(null); refreshList(); scheduleAutosave();
 }
 
 function cloneSelected() {
@@ -662,7 +664,7 @@ function cloneSelected() {
     if (h) { clone.userData.helper = h; scene.add(h); }
   }
   scene.add(clone); objects.push(clone);
-  selectObject(clone); refreshList();
+  selectObject(clone); refreshList(); scheduleAutosave();
 }
 
 // ── Transform modes ───────────────────────────────────
@@ -747,6 +749,7 @@ document.addEventListener('keydown', e => {
   else if (k === 'delete' || k === 'backspace') deleteSelected();
   else if (k === 'g') { grid.visible = !grid.visible; document.getElementById('btn-grid-toggle').classList.toggle('active', grid.visible); }
   else if (k === 's' && !e.ctrlKey && !e.metaKey) { snapEnabled = !snapEnabled; document.getElementById('btn-snap-toggle').classList.toggle('active', snapEnabled); transformCtl.setTranslationSnap(snapEnabled?0.5:null); transformCtl.setRotationSnap(snapEnabled?Math.PI/12:null); document.getElementById('sb-snap').textContent = snapEnabled?'Snap: 0.5':'Snap: Off'; }
+  else if (k === 's' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); if (e.shiftKey) exportToDisk(); else document.getElementById('btn-save').click(); }
   else if (k === 'z' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); e.shiftKey ? restore(redoStack,undoStack) : restore(undoStack,redoStack); }
   else if (k === 'y' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); restore(redoStack,undoStack); }
   else if (k === 'd' && (e.ctrlKey||e.metaKey)) { e.preventDefault(); cloneSelected(); }
@@ -754,70 +757,195 @@ document.addEventListener('keydown', e => {
   else if (k === 'f' && selected) { orbit.target.copy(selected.position); }
 });
 
-// ── File I/O ──────────────────────────────────────────
-const DB_NAME='free3dstore', DB_VER=1, STORE='files';
+// ── IndexedDB ─────────────────────────────────────────
+const DB_NAME='free3dstore', DB_VER=2, STORE='files', AUTOSAVE_ID='__autosave__';
 function openDB() { return new Promise((res,rej) => { const r=indexedDB.open(DB_NAME,DB_VER); r.onupgradeneeded=()=>{ if(!r.result.objectStoreNames.contains(STORE)){ const s=r.result.createObjectStore(STORE,{keyPath:'id'}); s.createIndex('accessedAt','accessedAt'); }}; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 function idbReq(r) { return new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 
-document.getElementById('btn-save').addEventListener('click', async () => {
+// ── Export scene to GLB ArrayBuffer ───────────────────
+async function exportScene() {
   const exportObjs = objects.filter(o => o.isMesh || o.isGroup);
-  if (!exportObjs.length) { showStatus('Nothing to save'); return; }
+  if (!exportObjs.length) return null;
   const group = new THREE.Group();
   exportObjs.forEach(o => group.add(o.clone()));
-  const result = await new GLTFExporter().parseAsync(group, { binary: true });
+  return new GLTFExporter().parseAsync(group, { binary: true });
+}
+
+function captureThumb() {
+  renderer.render(scene, camera);
+  const t = document.createElement('canvas'); t.width = 128; t.height = 128;
+  t.getContext('2d').drawImage(canvas, 0, 0, 128, 128);
+  return t.toDataURL('image/webp', 0.7);
+}
+
+// ── Auto-save (every 30s + on every mutation) ─────────
+let autosaveTimer = null;
+function scheduleAutosave() {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(doAutosave, 3000); // 3s debounce
+}
+
+async function doAutosave() {
+  const result = await exportScene();
+  if (!result) return;
+  const now = Date.now();
+  const db = await openDB();
+  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+    id: AUTOSAVE_ID, name: '(autosave)', size: result.byteLength, format: 'glb',
+    data: result, thumbnail: captureThumb(), createdAt: now, accessedAt: now
+  }));
+  db.close();
+}
+
+// Hook autosave into mutations
+transformCtl.addEventListener('mouseUp', scheduleAutosave);
+
+// Periodic fallback autosave
+setInterval(() => { if (objects.length) doAutosave(); }, 30000);
+
+// ── Clear scene helper ────────────────────────────────
+function clearScene() {
+  while (objects.length) { const o = objects.pop(); scene.remove(o); if (o.userData.helper) scene.remove(o.userData.helper); }
+  if (selOutline) { scene.remove(selOutline); selOutline = null; }
+  selectObject(null);
+  Object.keys(counters).forEach(k => counters[k] = 0);
+  undoStack.length = 0; redoStack.length = 0;
+  refreshList();
+}
+
+// ── Load GLB into scene (replaces everything) ─────────
+async function loadSceneFromGLB(arrayBuffer, silent) {
+  const url = URL.createObjectURL(new Blob([arrayBuffer], { type: 'model/gltf-binary' }));
+  try {
+    const gltf = await new GLTFLoader().loadAsync(url);
+    clearScene();
+    // Add each child as a separate editor object
+    const children = [...gltf.scene.children];
+    for (const child of children) {
+      child.userData.editorName = child.name || genName(child.isMesh ? 'object' : 'group');
+      child.userData.type = child.isMesh ? 'mesh' : 'group';
+      if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
+      scene.add(child);
+      objects.push(child);
+    }
+    refreshList();
+    updateUI();
+    if (!silent) showStatus(`Loaded scene (${objects.length} objects)`);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// ── Auto-load on startup ──────────────────────────────
+async function tryAutoload() {
+  try {
+    const db = await openDB();
+    const entry = await idbReq(db.transaction(STORE, 'readonly').objectStore(STORE).get(AUTOSAVE_ID));
+    db.close();
+    if (entry && entry.data) {
+      await loadSceneFromGLB(entry.data, true);
+      showStatus('Restored autosaved scene');
+    }
+  } catch { /* no autosave, start fresh */ }
+}
+
+// ── Save (Ctrl+S = save to browser) ───────────────────
+document.getElementById('btn-save').addEventListener('click', async () => {
+  const result = await exportScene();
+  if (!result) { showStatus('Nothing to save'); return; }
+  const now = Date.now();
+  const db = await openDB();
+  // Save as autosave (current working state)
+  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+    id: AUTOSAVE_ID, name: '(autosave)', size: result.byteLength, format: 'glb',
+    data: result, thumbnail: captureThumb(), createdAt: now, accessedAt: now
+  }));
+  db.close();
+  showStatus('Saved');
+});
+
+// ── Save Local (named snapshot in recent list) ────────
+document.getElementById('btn-save-local').addEventListener('click', async () => {
+  const result = await exportScene();
+  if (!result) { showStatus('Nothing to save'); return; }
+  const now = Date.now();
+  const name = `scene-${new Date().toISOString().slice(0,16).replace('T','-').replace(':','')}.glb`;
+  const db = await openDB();
+  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+    id: `${now}-${name}`, name, size: result.byteLength, format: 'glb',
+    data: result, thumbnail: captureThumb(), createdAt: now, accessedAt: now
+  }));
+  // Also update autosave
+  await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+    id: AUTOSAVE_ID, name: '(autosave)', size: result.byteLength, format: 'glb',
+    data: result, thumbnail: captureThumb(), createdAt: now, accessedAt: now
+  }));
+  db.close();
+  showStatus(`Snapshot saved: ${name}`);
+  loadRecent();
+});
+
+// ── Export to disk ─────────────────────────────────────
+async function exportToDisk() {
+  const result = await exportScene();
+  if (!result) { showStatus('Nothing to export'); return; }
   const blob = new Blob([result], { type: 'model/gltf-binary' });
   if ('showSaveFilePicker' in window) {
-    try { const h = await window.showSaveFilePicker({ suggestedName:'scene.glb', types:[{description:'GLB',accept:{'model/gltf-binary':['.glb']}}] }); const w = await h.createWritable(); await w.write(blob); await w.close(); showStatus(`Saved ${h.name}`); }
-    catch(e) { if (e.name!=='AbortError') showStatus('Save cancelled'); }
-  } else { const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.glb'; a.click(); showStatus('Downloaded scene.glb'); }
-});
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: 'scene.glb', types: [{ description: 'GLB', accept: { 'model/gltf-binary': ['.glb'] } }] });
+      const w = await h.createWritable(); await w.write(blob); await w.close();
+      showStatus(`Exported ${h.name}`);
+    } catch (e) { if (e.name !== 'AbortError') showStatus('Export cancelled'); }
+  } else {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'scene.glb'; a.click();
+    showStatus('Downloaded scene.glb');
+  }
+}
 
-document.getElementById('btn-save-local').addEventListener('click', async () => {
-  const exportObjs = objects.filter(o => o.isMesh || o.isGroup);
-  if (!exportObjs.length) { showStatus('Nothing to save'); return; }
-  const group = new THREE.Group(); exportObjs.forEach(o => group.add(o.clone()));
-  const result = await new GLTFExporter().parseAsync(group, { binary:true });
-  renderer.render(scene,camera);
-  const thumb = document.createElement('canvas'); thumb.width=128; thumb.height=128; thumb.getContext('2d').drawImage(canvas,0,0,128,128);
-  const now=Date.now(), name=`scene-${new Date().toISOString().slice(0,16).replace('T','-').replace(':','')}.glb`;
-  const db = await openDB();
-  await idbReq(db.transaction(STORE,'readwrite').objectStore(STORE).put({ id:`${now}-${name}`, name, size:result.byteLength, format:'glb', data:result, thumbnail:thumb.toDataURL('image/webp',0.7), createdAt:now, accessedAt:now }));
-  db.close(); showStatus(`Saved locally: ${name}`); loadRecent();
-});
+document.getElementById('btn-export-disk').addEventListener('click', exportToDisk);
 
+// ── Open (from disk = import into scene) ──────────────
 document.getElementById('btn-open').addEventListener('click', async () => {
   if ('showOpenFilePicker' in window) {
-    try { const [h] = await window.showOpenFilePicker({ types:[{description:'3D Models',accept:{'model/*':['.glb','.gltf','.obj','.stl']}}] }); await importModelFile(await h.getFile()); }
-    catch(e) { if (e.name!=='AbortError') showStatus('Open cancelled'); }
+    try { const [h] = await window.showOpenFilePicker({ types: [{ description: '3D Models', accept: { 'model/*': ['.glb', '.gltf', '.obj', '.stl'] } }] }); await importModelFile(await h.getFile()); }
+    catch (e) { if (e.name !== 'AbortError') showStatus('Open cancelled'); }
   } else {
-    const input=document.createElement('input'); input.type='file'; input.accept='.glb,.gltf,.obj,.stl';
-    input.onchange=()=>{ if(input.files[0]) importModelFile(input.files[0]); }; input.click();
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '.glb,.gltf,.obj,.stl';
+    input.onchange = () => { if (input.files[0]) importModelFile(input.files[0]); }; input.click();
   }
 });
 
 async function importModelFile(file) {
-  const ext=file.name.split('.').pop().toLowerCase(), url=URL.createObjectURL(file);
+  const ext = file.name.split('.').pop().toLowerCase(), url = URL.createObjectURL(file);
   try {
     let obj;
-    if (ext==='glb'||ext==='gltf') { obj=(await new GLTFLoader().loadAsync(url)).scene; }
-    else if (ext==='obj') { obj=await new OBJLoader().loadAsync(url); }
-    else if (ext==='stl') { obj=new THREE.Mesh(await new STLLoader().loadAsync(url), makeMat(0x808080)); }
+    if (ext === 'glb' || ext === 'gltf') { obj = (await new GLTFLoader().loadAsync(url)).scene; }
+    else if (ext === 'obj') { obj = await new OBJLoader().loadAsync(url); }
+    else if (ext === 'stl') { obj = new THREE.Mesh(await new STLLoader().loadAsync(url), makeMat(0x808080)); }
     else { showStatus('Unsupported format'); return; }
-    const box=new THREE.Box3().setFromObject(obj), center=box.getCenter(new THREE.Vector3()), size=box.getSize(new THREE.Vector3());
-    const maxDim=Math.max(size.x,size.y,size.z); if(maxDim>0){ obj.position.sub(center); obj.scale.multiplyScalar(2/maxDim); }
-    addObject(obj, file.name.replace(/\.[^.]+$/,''));
+    const box = new THREE.Box3().setFromObject(obj), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    if (maxDim > 0) { obj.position.sub(center); obj.scale.multiplyScalar(2 / maxDim); }
+    addObject(obj, file.name.replace(/\.[^.]+$/, ''));
+    scheduleAutosave();
     // Save to recent
-    const now=Date.now(), db=await openDB();
-    renderer.render(scene,camera); const thumb=document.createElement('canvas'); thumb.width=128; thumb.height=128; thumb.getContext('2d').drawImage(canvas,0,0,128,128);
-    await idbReq(db.transaction(STORE,'readwrite').objectStore(STORE).put({ id:`${now}-${file.name}`, name:file.name, size:file.size, format:ext, data:await file.arrayBuffer(), thumbnail:thumb.toDataURL('image/webp',0.7), createdAt:now, accessedAt:now }));
+    const now = Date.now(), db = await openDB();
+    await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).put({
+      id: `${now}-${file.name}`, name: file.name, size: file.size, format: ext,
+      data: await file.arrayBuffer(), thumbnail: captureThumb(),
+      createdAt: now, accessedAt: now
+    }));
     db.close(); loadRecent();
   } finally { URL.revokeObjectURL(url); }
 }
 
-document.getElementById('btn-new').addEventListener('click', () => {
+// ── New scene ─────────────────────────────────────────
+document.getElementById('btn-new').addEventListener('click', async () => {
   if (objects.length && !confirm('Clear scene? Unsaved changes will be lost.')) return;
-  while (objects.length) { const o=objects.pop(); scene.remove(o); if(o.userData.helper) scene.remove(o.userData.helper); }
-  selectObject(null); Object.keys(counters).forEach(k=>counters[k]=0); undoStack.length=0; redoStack.length=0; refreshList(); showStatus('New scene');
+  clearScene();
+  // Clear autosave
+  const db = await openDB();
+  try { await idbReq(db.transaction(STORE, 'readwrite').objectStore(STORE).delete(AUTOSAVE_ID)); } catch {}
+  db.close();
+  showStatus('New scene');
 });
 
 document.getElementById('btn-undo').addEventListener('click', () => restore(undoStack, redoStack));
@@ -827,36 +955,64 @@ document.getElementById('btn-redo').addEventListener('click', () => restore(redo
 const recentList = document.getElementById('recent-list');
 async function loadRecent() {
   try {
-    const db=await openDB(), store=db.transaction(STORE,'readonly').objectStore(STORE), index=store.index('accessedAt'), items=[];
-    await new Promise((res,rej) => { const c=index.openCursor(null,'prev'); c.onsuccess=()=>{ const r=c.result; if(r&&items.length<12){const{data,...meta}=r.value;items.push(meta);r.continue();}else res(); }; c.onerror=()=>rej(c.error); });
+    const db = await openDB(), store = db.transaction(STORE, 'readonly').objectStore(STORE), index = store.index('accessedAt'), items = [];
+    await new Promise((res, rej) => {
+      const c = index.openCursor(null, 'prev');
+      c.onsuccess = () => { const r = c.result; if (r && items.length < 15) { if (r.value.id !== AUTOSAVE_ID) { const { data, ...meta } = r.value; items.push(meta); } r.continue(); } else res(); };
+      c.onerror = () => rej(c.error);
+    });
     db.close();
-    if (!items.length) { recentList.innerHTML='<div class="empty-msg">No recent files</div>'; return; }
-    recentList.innerHTML='';
+    if (!items.length) { recentList.innerHTML = '<div class="empty-msg">No saved scenes</div>'; return; }
+    recentList.innerHTML = '';
     for (const item of items) {
-      const div=document.createElement('div'); div.className='recent-item';
-      const sizeStr = item.size>1048576 ? (item.size/1048576).toFixed(1)+'MB' : (item.size/1024).toFixed(0)+'KB';
-      div.innerHTML=`${item.thumbnail?`<img class="recent-thumb" src="${item.thumbnail}">`:'<div class="recent-thumb"></div>'}<div class="recent-meta"><div class="recent-name">${item.name}</div><div class="recent-info">${sizeStr} · ${item.format.toUpperCase()}</div></div><button class="recent-del" title="Remove">×</button>`;
-      div.querySelector('.recent-meta').addEventListener('click', async ()=>{
-        const db2=await openDB(); const entry=await idbReq(db2.transaction(STORE,'readonly').objectStore(STORE).get(item.id)); db2.close();
-        if(entry){ entry.accessedAt=Date.now(); const db3=await openDB(); await idbReq(db3.transaction(STORE,'readwrite').objectStore(STORE).put(entry)); db3.close();
-        await importModelFile(new File([entry.data],entry.name)); loadRecent(); }
+      const div = document.createElement('div'); div.className = 'recent-item';
+      const sizeStr = item.size > 1048576 ? (item.size / 1048576).toFixed(1) + 'MB' : (item.size / 1024).toFixed(0) + 'KB';
+      const ago = timeAgo(item.accessedAt);
+      div.innerHTML = `${item.thumbnail ? `<img class="recent-thumb" src="${item.thumbnail}">` : '<div class="recent-thumb"></div>'}<div class="recent-meta"><div class="recent-name">${item.name}</div><div class="recent-info">${sizeStr} · ${ago}</div></div><button class="recent-del" title="Remove">×</button>`;
+      // Click = load as full scene replacement
+      div.querySelector('.recent-meta').addEventListener('click', async () => {
+        const db2 = await openDB();
+        const entry = await idbReq(db2.transaction(STORE, 'readonly').objectStore(STORE).get(item.id));
+        db2.close();
+        if (!entry) return;
+        entry.accessedAt = Date.now();
+        const db3 = await openDB();
+        await idbReq(db3.transaction(STORE, 'readwrite').objectStore(STORE).put(entry));
+        db3.close();
+        await loadSceneFromGLB(entry.data);
+        scheduleAutosave();
+        loadRecent();
       });
-      div.querySelector('.recent-del').addEventListener('click', async e=>{ e.stopPropagation(); const db2=await openDB(); await idbReq(db2.transaction(STORE,'readwrite').objectStore(STORE).delete(item.id)); db2.close(); loadRecent(); });
+      div.querySelector('.recent-del').addEventListener('click', async e => {
+        e.stopPropagation();
+        const db2 = await openDB();
+        await idbReq(db2.transaction(STORE, 'readwrite').objectStore(STORE).delete(item.id));
+        db2.close(); loadRecent();
+      });
       recentList.appendChild(div);
     }
-  } catch { recentList.innerHTML='<div class="empty-msg">No recent files</div>'; }
+  } catch { recentList.innerHTML = '<div class="empty-msg">No saved scenes</div>'; }
+}
+
+function timeAgo(ts) {
+  const d = Date.now() - ts;
+  if (d < 60000) return 'just now';
+  if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;
+  if (d < 86400000) return `${Math.floor(d / 3600000)}h ago`;
+  return `${Math.floor(d / 86400000)}d ago`;
 }
 
 // Drag and drop
 canvas.addEventListener('dragover', e => e.preventDefault());
-canvas.addEventListener('drop', e => { e.preventDefault(); if(e.dataTransfer.files[0]) importModelFile(e.dataTransfer.files[0]); });
+canvas.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) importModelFile(e.dataTransfer.files[0]); });
 
-function showStatus(msg) { document.getElementById('status-msg').textContent=msg; setTimeout(()=>{document.getElementById('status-msg').textContent='Ready';},3000); }
+function showStatus(msg) { document.getElementById('status-msg').textContent = msg; setTimeout(() => { document.getElementById('status-msg').textContent = 'Ready'; }, 3000); }
 
 // ── Init ──────────────────────────────────────────────
 refreshList();
 loadRecent();
 updateUI();
+tryAutoload();
 </script>
 </body>
 </html>
